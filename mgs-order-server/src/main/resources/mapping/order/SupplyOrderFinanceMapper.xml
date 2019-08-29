@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.SupplyOrderFinanceMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.order.domain.SupplyOrderFinancePO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="supply_order_id" jdbcType="INTEGER" property="supplyOrderId" />
+    <result column="supply_order_code" jdbcType="VARCHAR" property="supplyOrderCode" />
+    <result column="paid_amt" jdbcType="DECIMAL" property="paidAmt" />
+    <result column="unpaid_amt" jdbcType="DECIMAL" property="unpaidAmt" />
+    <result column="unconfirmed_received_amt" jdbcType="DECIMAL" property="unconfirmedReceivedAmt" />
+    <result column="unconfirmed_paid_amt" jdbcType="DECIMAL" property="unconfirmedPaidAmt" />
+    <result column="settlement_status" jdbcType="INTEGER" property="settlementStatus" />
+    <result column="settlement_date" jdbcType="TIMESTAMP" property="settlementDate" />
+    <result column="check_status" jdbcType="INTEGER" property="checkStatus" />
+    <result column="finance_lock_status" jdbcType="INTEGER" property="financeLockStatus" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+  </resultMap>
+
+  <select id="querySupplyOrderAmt" parameterType="com.mgs.order.remote.request.SupplyOrderIdListDTO"
+          resultType="com.mgs.order.dto.SupplyOrderAmtDTO">
+    SELECT
+    o.id orderId,
+    o.order_code orderCode,
+    o.company_code companyCode,
+    so.id supplyOrderId,
+    so.supply_order_code supplyOrderCode,
+    so.supplier_code supplierCode,
+    so.supplier_name supplierName,
+    sf.id supplyOrderFinanceId,
+    so.base_currency currency,
+    so.supply_order_amt supplyOrderAmt,
+    sf.paid_amt paidAmt,
+    sf.unpaid_amt unpaidAmt,
+    sf.unconfirmed_received_amt unconfirmedReceivedAmt,
+    sf.unconfirmed_paid_amt unconfirmedPaidAmt
+    FROM o_order o,o_supply_order so,o_supply_order_finance sf
+    WHERE o.id=so.order_id AND so.id=sf.supply_order_id
+    <if test="supplyOrderIdList != null and supplyOrderIdList.size > 0">
+      AND so.id IN
+      <foreach collection="supplyOrderIdList" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </if>
+  </select>
+</mapper>

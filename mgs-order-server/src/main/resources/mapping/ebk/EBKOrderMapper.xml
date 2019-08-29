@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.ebk.mapper.EBKOrderMapper">
+
+    <select id="queryOrderDetail" resultType="com.mgs.ebk.order.remote.response.SupplyOrderDetailDTO" parameterType="java.util.Map">
+        SELECT
+        s.id                        supplyOrderId,
+        s.order_id                  orderId,
+        s.supply_order_code         orderCode,
+        s.hotel_name                hotelName,
+        s.product_name              productName,
+        s.start_date                startDate,
+        s.end_date                  endDate,
+        s.room_qty                  roomQty,
+        o.guest                     guest,
+        o.special_request           specialRequest,
+        s.confirmation_code         confirmationCode,
+        s.created_dt                createdDt,
+        s.supply_order_amt          orderAmt,
+        s.base_price                salePrice,
+        s.refund_fee                refundFee,
+        s.settlement_type           settlementType,
+        f.settlement_status         settlementStatus,
+        f.paid_amt                  receivedAmt,
+        f.unpaid_amt                unreceivedAmt
+
+        FROM
+        o_ebk_supply_order s
+        LEFT JOIN
+        o_supply_order_finance f
+        ON
+        s.id = f.supply_order_id
+        LEFT JOIN
+        o_order  o
+        ON
+        s.order_id=o.id
+        WHERE
+           s.supply_order_code=#{orderCode}
+
+    </select>
+
+
+</mapper>

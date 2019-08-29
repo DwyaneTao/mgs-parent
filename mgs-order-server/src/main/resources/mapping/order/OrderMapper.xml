@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.OrderMapper">
+    <resultMap id="BaseResultMap" type="com.mgs.order.domain.OrderPO">
+        <!--
+          WARNING - @mbg.generated
+        -->
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="order_code" jdbcType="VARCHAR" property="orderCode"/>
+        <result column="order_confirmation_status" jdbcType="INTEGER" property="orderConfirmationStatus"/>
+        <result column="sale_currency" jdbcType="INTEGER" property="saleCurrency"/>
+        <result column="order_amt" jdbcType="DECIMAL" property="orderAmt"/>
+        <result column="sale_price" jdbcType="DECIMAL" property="salePrice"/>
+        <result column="settlement_type" jdbcType="INTEGER" property="settlementType"/>
+        <result column="channel_code" jdbcType="VARCHAR" property="channelCode"/>
+        <result column="agent_code" jdbcType="VARCHAR" property="agentCode"/>
+        <result column="agent_name" jdbcType="VARCHAR" property="agentName"/>
+        <result column="contact_name" jdbcType="VARCHAR" property="contactName"/>
+        <result column="contact_phone" jdbcType="VARCHAR" property="contactPhone"/>
+        <result column="channel_order_code" jdbcType="VARCHAR" property="channelOrderCode"/>
+        <result column="special_request" jdbcType="VARCHAR" property="specialRequest"/>
+        <result column="is_show_on_supply_order" jdbcType="INTEGER" property="isShowOnSupplyOrder"/>
+        <result column="order_owner_user" jdbcType="VARCHAR" property="orderOwnerUser"/>
+        <result column="order_owner_name" jdbcType="VARCHAR" property="orderOwnerName"/>
+        <result column="lock_user" jdbcType="VARCHAR" property="lockUser"/>
+        <result column="lock_name" jdbcType="VARCHAR" property="lockName"/>
+        <result column="lock_time" jdbcType="TIMESTAMP" property="lockTime"/>
+        <result column="profit" jdbcType="DECIMAL" property="profit"/>
+        <result column="is_manual_order" jdbcType="INTEGER" property="isManualOrder"/>
+        <result column="is_substituted" jdbcType="INTEGER" property="isSubstituted"/>
+        <result column="company_code" jdbcType="VARCHAR" property="companyCode"/>
+        <result column="merchant_bm" jdbcType="VARCHAR" property="merchantBm"/>
+        <result column="refund_fee" jdbcType="DECIMAL" property="refundFee"/>
+        <result column="cancelled_reason" jdbcType="VARCHAR" property="cancelledReason"/>
+        <result column="city_code" jdbcType="VARCHAR" property="cityCode"/>
+        <result column="city_name" jdbcType="VARCHAR" property="cityName"/>
+        <result column="hotel_id" jdbcType="INTEGER" property="hotelId"/>
+        <result column="hotel_name" jdbcType="VARCHAR" property="hotelName"/>
+        <result column="room_name" jdbcType="VARCHAR" property="roomName"/>
+        <result column="product_name" jdbcType="VARCHAR" property="productName"/>
+        <result column="start_date" jdbcType="DATE" property="startDate"/>
+        <result column="end_date" jdbcType="DATE" property="endDate"/>
+        <result column="room_qty" jdbcType="INTEGER" property="roomQty"/>
+        <result column="guest" jdbcType="VARCHAR" property="guest"/>
+        <result column="bed_type" jdbcType="VARCHAR" property="bedType"/>
+        <result column="breakfast_qty" jdbcType="INTEGER" property="breakfastQty"/>
+        <result column="confirmation_code" jdbcType="VARCHAR" property="confirmationCode"/>
+        <result column="supply_order_confirmation_status" jdbcType="VARCHAR" property="supplyOrderConfirmationStatus"/>
+        <result column="confirm_time" jdbcType="TIMESTAMP" property="confirmTime"/>
+        <result column="marked_status" jdbcType="INTEGER" property="markedStatus"/>
+        <result column="modification_status" jdbcType="INTEGER" property="modificationStatus"/>
+        <result column="created_by" jdbcType="VARCHAR" property="createdBy"/>
+        <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt"/>
+        <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy"/>
+        <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt"/>
+    </resultMap>
+
+    <select id="queryOrderList" parameterType="com.mgs.order.remote.request.QueryOrderListDTO"
+            resultType="com.mgs.order.remote.response.OrderSimpleDTO">
+        SELECT
+        o.id orderId,
+        o.order_code orderCode,
+        o.created_dt createdDt,
+        o.channel_code channelCode,
+        o.agent_name agentName,
+        o.agent_code agentCode,
+        o.hotel_name hotelName,
+        o.room_name roomName,
+        o.product_name productName,
+        o.start_date startDate,
+        o.end_date endDate,
+        o.guest guest,
+        o.room_qty roomQty,
+        o.order_amt orderAmt,
+        o.settlement_type orderSettlementType,
+        o.order_confirmation_status orderConfirmationStatus,
+        o.supply_order_confirmation_status supplyOrderConfirmationStatus,
+        o.order_owner_name orderOwnerName,
+        o.confirmation_code confirmationCode,
+        o.lock_name lockName,
+        o.is_show_on_supply_order isShownOnSupplyOrder,
+        o.marked_status markedStatus,
+        f.settlement_status orderSettlementStatus
+        FROM
+        o_order o
+        LEFT JOIN
+        o_order_finance f
+        ON
+        o.id = f.order_id
+        WHERE o.company_code=#{companyCode}
+        <if test="orderCode != null and orderCode !=''">
+            AND o.order_code LIKE concat(concat('%',#{orderCode}),'%')
+        </if>
+        <if test="guest != null and guest !=''">
+            AND o.guest LIKE concat(concat('%',#{guest}),'%')
+        </if>
+        <if test="channelOrderCode != null and channelOrderCode !=''">
+            AND o.channel_order_code LIKE concat(concat('%',#{channelOrderCode}),'%')
+        </if>
+        <choose>
+            <when test="orderConfirmationStatus == 3">
+                AND o.order_owner_name IS NULL
+            </when>
+            <when test="orderConfirmationStatus == 4">
+                AND o.modification_status=1
+            </when>
+            <otherwise>
+                <if test="orderConfirmationStatus != null">
+                    AND o.order_confirmation_status=#{orderConfirmationStatus}
+                </if>
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="dateQueryType==1">
+                <if test="startDate != null and startDate !=''">
+                    AND o.start_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND o.start_date &lt;= #{endDate}
+                </if>
+            </when>
+            <when test="dateQueryType==2">
+                <if test="startDate != null and startDate !=''">
+                    AND o.end_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND o.end_date &lt;= #{endDate}
+                </if>
+            </when>
+            <otherwise>
+                <if test="startDate != null and startDate !=''">
+                    AND o.created_dt &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+                </if>
+            </otherwise>
+        </choose>
+        <choose>
+            <when test="hotelId!=null">
+                AND o.hotel_id=#{hotelId}
+            </when>
+            <otherwise>
+                <if test="hotelName!=null and hotelName!=''">
+                    AND o.hotel_name LIKE concat(concat('%',#{hotelName}),'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="supplyOrderConfirmationStatus != null">
+            AND o.supply_order_confirmation_status=#{supplyOrderConfirmationStatus}
+        </if>
+        <if test="channelCode != null and channelCode !=''">
+            AND o.channel_code like concat(concat(#{channelCode}),'%')
+        </if>
+        <if test="orderSettlementType != null">
+            AND o.settlement_type=#{orderSettlementType}
+        </if>
+        <if test="orderSettlementStatus != null">
+           AND f.settlement_status = #{orderSettlementStatus}
+        </if>
+        <if test="confirmationCode != null and confirmationCode !=''">
+            AND o.confirmation_code LIKE concat(concat('%',#{confirmationCode}),'%')
+        </if>
+        <if test="markedStatus != null">
+            AND o.marked_status=#{markedStatus}
+        </if>
+        <if test="isMyOrder == 1">
+            AND o.order_owner_name=#{operator}
+        </if>
+        <trim prefix="AND EXISTS (SELECT 1 FROM o_supply_order so WHERE  o.id = so.order_id " suffix=")">
+
+            <if test="purchaseManagerId != null ">
+                AND so.merchant_pm=#{purchaseManagerId}
+            </if>
+            <if test="supplyOrderSettlementType != null">
+                AND so.settlement_type=#{supplyOrderSettlementType}
+            </if>
+            <choose>
+                <when test="supplyOrderSettlementStatus == 3">
+                    AND so.sending_status=0
+                </when>
+                <otherwise>
+                    <if test="supplyOrderSettlementStatus != null">
+                        AND so.confirmation_status=#{supplyOrderSettlementStatus}
+                    </if>
+                </otherwise>
+            </choose>
+            <if test="supplyOrderCode != null and supplyOrderCode !=''">
+                AND so.supply_order_code=#{supplyOrderCode}
+            </if>
+            <if test="supplierOrderCode != null and supplierOrderCode !=''">
+                AND so.supplier_order_code=#{supplierOrderCode}
+            </if>
+        </trim>
+        ORDER BY o.id DESC
+    </select>
+
+
+    <select id="queryOrderStatistics" parameterType="com.mgs.order.remote.request.QueryOrderStatisticsDTO"
+            resultType="com.mgs.order.remote.response.OrderStatisticsDTO">
+    SELECT
+      SUM(if(order_confirmation_status=0,1,0))pendingOrderQty,
+      SUM(if(supply_order_confirmation_status=0,1,0))pendingSupplyOrderQty,
+      SUM(if(order_owner_user=#{operator},1,0))myOrderQty,
+      SUM(if(marked_status=1,1,0))markedOrderQty
+    FROM o_order o
+    WHERE o.company_code = #{companyCode}
+      AND o.created_dt >= date_add(CURRENT_DATE(), interval -90 day)
+      AND o.created_dt &lt; date_add(CURRENT_DATE(), interval 1 day)
+  </select>
+
+    <select id="queryChannelOrderQty" parameterType="com.mgs.order.remote.request.QueryOrderStatisticsDTO"
+            resultType="com.mgs.order.remote.response.ChannelOrderQtyDTO">
+    SELECT
+      o.channel_code channelCode,
+      COUNT(1) orderQty
+    FROM o_order o
+    WHERE o.company_code = #{companyCode}
+      AND o.created_dt >= date_add(CURRENT_DATE(), interval -90 day)
+      AND o.created_dt &lt; date_add(CURRENT_DATE(), interval 1 day)
+      AND o.order_confirmation_status=0
+    GROUP BY o.channel_code
+  </select>
+
+    <select id="queryOnTimeOrderList" parameterType="com.mgs.order.remote.request.QueryOnTimeOrderListDTO"
+            resultType="com.mgs.order.remote.response.OnTimeOrderDTO">
+        SELECT
+        o.id orderId,
+        o.order_code orderCode,
+        o.agent_code agentCode,
+        o.agent_name agentName,
+        o.order_amt receivableAmt,
+        f.received_amt receivedAmt,
+        f.unreceived_amt unreceivedAmt,
+        f.unconfirmed_received_amt unconfirmedReceivedAmt,
+        f.unconfirmed_paid_amt unconfirmedPaidAmt,
+        f.settlement_date settlementDate,
+        if(ISNULL(f.real_settlement_date), if(DATEDIFF(CURDATE(),f.settlement_date)&gt;0,DATEDIFF(CURDATE(),f.settlement_date),0), if(DATEDIFF(f.real_settlement_date,f.settlement_date)&gt;0,DATEDIFF(f.real_settlement_date,f.settlement_date),0)) overdueDays,
+        f.settlement_status settlementStatus,
+        o.sale_currency saleCurrency
+        FROM
+        o_order o,o_order_finance f
+        WHERE o.id=f.order_id
+        AND o.company_code=#{companyCode}
+        AND o.settlement_type=3
+        and o.order_confirmation_status > 0
+        <choose>
+            <when test="agentCode!=null and agentCode!=''">
+                AND o.agent_code=#{agentCode}
+            </when>
+            <otherwise>
+                <if test="agentName != null and agentName != ''">
+                    and o.agent_name LIKE concat(concat('%',#{agentName}),'%')
+                </if>
+            </otherwise>
+        </choose>
+        <if test="startDate != null and startDate !=''">
+            AND f.settlement_date &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate !=''">
+            AND f.settlement_date &lt;= #{endDate}
+        </if>
+        <if test="orderCode != null and orderCode !=''">
+            AND o.order_code LIKE concat(concat('%',#{orderCode}),'%')
+        </if>
+        <if test="settlementStatus !=null and settlementStatus != ''">
+            AND f.settlement_status = #{settlementStatus}
+        </if>
+        <if test="overdueStatus !=null and overdueStatus != ''">
+            <if test="overdueStatus == 0">
+                AND DATEDIFF(CURDATE(),f.settlement_date)&lt;=0
+            </if>
+            <if test="overdueStatus == 1">
+                AND DATEDIFF(CURDATE(),f.settlement_date)>0
+            </if>
+        </if>
+        AND f.received_amt != 0
+        ORDER BY o.id DESC
+    </select>
+
+    <select id="queryBetweenDate" parameterType="java.util.Map" resultType="java.lang.String">
+      SELECT
+	     sale_date
+      FROM
+	     t_pro_sale_date
+      WHERE
+	     sale_date
+	  BETWEEN
+	     #{begin}
+	  AND
+	     #{end}
+    </select>
+
+    <select id="querySettlementStatus" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+     SELECT
+        f.settlement_status
+     FROM
+        o_order_finance f
+    WHERE
+        f.order_id=#{orderId}
+     </select>
+
+
+    <select id="querySupplyOrderAmt" parameterType="java.util.List"
+            resultType="com.mgs.order.remote.response.SupplyOrderAmt">
+        SELECT
+        order_id orderId,
+        SUM( supply_order_amt * rate) amt
+        FROM
+        o_supply_order s
+        <if test="list!=null and list.size>0">
+            WHERE s.order_id IN
+            <foreach collection="list" item="item" open="(" separator="," close=")">
+                #{item}
+            </foreach>
+        </if>
+        GROUP BY
+        s.order_id
+    </select>
+
+</mapper>

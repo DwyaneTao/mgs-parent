@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.organization.mapper.AreaDataMapper">
+    <resultMap id="AreaDataMap" type="com.mgs.organization.domain.AreaDataPO">
+        <!--
+          WARNING - @mbg.generated
+        -->
+        <id column="date_id" jdbcType="INTEGER" property="dateId" />
+        <result column="date_name" jdbcType="VARCHAR" property="dataName" />
+        <result column="date_code" jdbcType="INTEGER" property="dataCode" />
+        <result column="super_id" jdbcType="INTEGER" property="superId" />
+        <result column="frist_name" jdbcType="VARCHAR" property="firstLetter" />
+        <result column="level" jdbcType="INTEGER" property="level" />
+        <result column="pinyin" jdbcType="VARCHAR" property="pinyin" />
+        <result column="active" jdbcType="INTEGER" property="active" />
+
+    </resultMap>
+
+
+    <select id="queryAreaData" parameterType="java.util.Map"
+            resultType="com.mgs.organization.remote.dto.AreaDataDTO">
+    SELECT
+         data_id  dataId,
+         data_name dataName,
+         data_code dataCode,
+         super_id  superId,
+         first_letter firstLetter,
+         level level,
+         pinyin pinyin,
+         active active
+    FROM
+         t_baseinfo_areadata b
+    where
+       b.active=1
+       <if test="superId!=null">
+          AND b.super_id= #{superId}
+       </if>
+       <if test="firstLetter!=null">
+            AND b.first_letter IN
+           <foreach collection="firstLetter" item="item" open="(" separator="," close=")">#{item}</foreach>
+        </if>
+        <if test="level!=null">
+            AND b.level= #{level}
+        </if>
+        <if test="dataName!=''">
+            AND (b.data_name =  #{dataName} or b.pinyin=#{dataName})
+        </if>
+
+  </select>
+</mapper>

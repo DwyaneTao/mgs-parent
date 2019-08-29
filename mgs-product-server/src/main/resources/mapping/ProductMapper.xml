@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductMapper" >
+
+    <!--查询产品列表-->
+    <select id="queryHotelList" parameterType="com.mgs.product.dto.QueryProductRequestDTO"
+            resultType="com.mgs.product.dto.ProductHotelDTO">
+        SELECT
+        h.hotel_id           hotelId,
+        h.hotel_name         hotelName,
+        h.created_dt         createdDt,
+        IFNULL(tbhs.sort_rank,1000) sortRank
+        FROM
+        t_baseinfo_hotel h
+        LEFT JOIN t_baseinfo_hotel_sort  tbhs
+        ON  tbhs.hotel_id = h.hotel_id
+        AND tbhs.org_code = #{companyCode}
+        WHERE
+          h.active = 1
+        <if test="null != cityCode and cityCode != '' ">
+            and h.city_code = #{cityCode}
+        </if>
+        <if test="null != hotelId and hotelId > 0">
+            and h.hotel_id = #{hotelId}
+        </if>
+        <if test='null != hasProducts and hasProducts == "1"'>
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+            t_pro_product p,
+            t_pro_sale_status s
+            WHERE
+            p.product_id = s.product_id
+            AND p.hotel_id = h.hotel_id
+            AND s.company_code = #{companyCode}
+            AND p.active = 1
+            AND s.active = 1
+            )
+        </if>
+        <if test='null != hasProducts and hasProducts == "0"'>
+            AND not EXISTS (
+            SELECT
+            1
+            FROM
+            t_pro_product p,
+            t_pro_sale_status s
+            WHERE
+            p.product_id = s.product_id
+            AND p.hotel_id = h.hotel_id
+            AND s.company_code = #{companyCode}
+            AND p.active = 1
+            AND s.active = 1
+            )
+        </if>
+        <if test="offShelveProduct != null and offShelveProduct != ''">
+            AND EXISTS (
+            SELECT
+            1
+            FROM
+             t_pro_product p
+            WHERE
+              p.active = #{offShelveProduct}
+            )
+        </if>
+        ORDER BY sortRank ASC, hotelId DESC
+    </select>
+
+    <!--查询酒店产品-->
+    <select id="queryHotelProducts" parameterType="com.mgs.product.dto.QueryProductRequestDTO" resultType="com.mgs.product.dto.ProductTempDTO">
+        select
+            products.hotel_id                   hotelId,
+            products.hotel_name                 hotelName,
+            products.active                     offShelveStatus,
+            products.room_id                    roomId,
+            products.room_name                  roomName,
+            products.product_id                 productId,
+            products.product_name               productName,
+            products.advance_payment_id         advancePaymentId,
+            products.breakfast_qty              breakfastQty,
+            products.supplier_code              supplierCode,
+            products.org_name                   supplierName,
+            products.roomBedTypes               roomBedTypes,
+            products.b2b_sale_status            b2bSaleStatus,
+            products.b2c_sale_status            b2cSaleStatus,
+            products.ctrip_sale_status          ctripSaleStatus,
+            products.feizhu_sale_status         feizhuSaleStatus,
+            products.qunar_sale_status          qunarSaleStatus,
+            products.tcyl_sale_status           tcylSaleStatus,
+            products.meituan_sale_status        meituanSaleStatus,
+            products.bed_types                  bedTypes,
+            products.purchase_type              purchaseType,
+            products.currency                   currency,
+            quotations.sale_date                saleDate,
+            quotations.base_price               basePrice,
+            quotations.over_draft_status        overDraftStatus,
+            quotations.quota                    quota,
+            quotations.remaining_quota          remainingQuota,
+            quotations.room_status              roomStatus
+            from
+            (SELECT
+                h.hotel_id,
+                h.hotel_name,
+                r.room_id,
+                r.room_name,
+                r.bed_types              roomBedTypes,
+                p.product_id,
+                p.product_name,
+                p.advance_payment_id,
+                p.breakfast_qty,
+                p.supplier_code,
+                p.bed_types,
+                p.purchase_type,
+                p.currency,
+                p.active,
+                o.org_name,
+                ps.b2b_sale_status,
+                ps.b2c_sale_status,
+                ps.ctrip_sale_status,
+                ps.feizhu_sale_status,
+                ps.qunar_sale_status,
+                ps.tcyl_sale_status,
+                ps.meituan_sale_status
+            FROM
+                t_baseinfo_hotel h,
+                t_baseinfo_room r,
+                t_pro_product p,
+                t_pro_sale_status ps,
+                t_org_company_supplier cs,
+                t_org_organization o
+            where h.hotel_id = p.hotel_id
+            and r.room_id = p.room_id
+            and p.product_id = ps.product_id
+            and o.org_code = p.supplier_code
+            and cs.company_code = ps.company_code
+            and cs.org_id = o.org_id
+            and cs.available_status = 1
+            and ps.company_code = #{companyCode}
+            and p.hotel_id = #{hotelId}
+            <if test="null != supplierCode and supplierCode != '' ">
+                and p.supplier_code = #{supplierCode}
+            </if>
+            <if test="null != purchaseType and purchaseType != '' ">
+            and p.purchase_type = #{purchaseType}
+            </if>
+            and ps.active = 1) products
+            left join
+            (SELECT
+                saledate.product_id,
+                saledate.sale_date,
+                price.base_price,
+                quota.over_draft_status,
+                quota.quota,
+                quota.remaining_quota,
+                quota.room_status
+            FROM
+            (
+            SELECT
+                sd.sale_date,
+                p.product_id
+            FROM
+                t_pro_sale_date sd,
+                t_pro_product p
+            WHERE
+              sd.sale_date &gt;= #{startDate}
+            AND sd.sale_date &lt;= #{endDate}
+            AND p.hotel_id = #{hotelId}
+            ) saledate
+            LEFT JOIN (
+            SELECT
+                p.product_id,
+                pi.sale_date,
+                pi.base_price
+            FROM
+                t_pro_product p,
+                t_pro_price pi
+            WHERE
+              p.product_id = pi.product_id
+            AND p.hotel_id = #{hotelId}
+            AND pi.sale_date &gt;= #{startDate}
+            AND pi.sale_date &lt;= #{endDate}
+            ) price ON saledate.sale_date = price.sale_date
+            AND saledate.product_id = price.product_id
+            LEFT JOIN (
+            SELECT
+                p.product_id,
+                q.over_draft_status,
+                q.quota,
+                q.remaining_quota,
+                q.room_status,
+                q.sale_date
+            FROM
+                t_pro_product p,
+                t_pro_quota q
+            WHERE
+              p.quota_account_id = q.quota_account_id
+            AND p.hotel_id = #{hotelId}
+            AND q.sale_date &gt;= #{startDate}
+            AND q.sale_date &lt;= #{endDate}
+            ) quota ON saledate.sale_date = quota.sale_date
+            AND saledate.product_id = quota.product_id
+            ) quotations on products.product_id = quotations.product_id
+    </select>
+
+    <!--查询售卖酒店Id列表-->
+    <select id="querySaleHotelIds" parameterType="com.mgs.product.dto.QueryProductRequestDTO" resultType="java.lang.Integer">
+
+        SELECT
+        a.hotel_id    hotelId,
+        a.created_dt createdDt,
+        IFNULL(tbhs.sort_rank,1000) sortRank
+        FROM(SELECT
+        DISTINCT
+        h.hotel_id,h.created_dt
+        FROM
+        t_baseinfo_hotel h,
+        t_baseinfo_room r,
+        t_pro_product p,
+        t_pro_sale_status s,
+        t_org_company_supplier cs,
+        t_org_organization o
+        WHERE
+        h.hotel_id = p.hotel_id
+        AND r.room_id = p.room_id
+        AND h.active = 1
+        AND p.active = 1
+        AND s.active = 1
+        AND p.product_id = s.product_id
+        AND s.company_code = #{companyCode}
+        and cs.company_code = s.company_code
+        and cs.org_id = o.org_id
+        and cs.available_status = 1
+        and p.supplier_code = o.org_code
+        <if test="null != hotelId and hotelId != '' ">
+            AND p.hotel_id = #{hotelId}
+        </if>
+        <if test="null != supplierCode and supplierCode != '' ">
+            AND p.supplier_code = #{supplierCode}
+        </if>
+        <if test="null != purchaseType and purchaseType != '' ">
+            AND p.purchase_type = #{purchaseType}
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "B2B"'>
+            AND s.b2b_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "B2B"'>
+            AND ifnull(s.b2b_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "B2C"'>
+            AND s.b2c_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "B2C"'>
+            AND ifnull(s.b2c_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Ctrip"'>
+            AND s.ctrip_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Ctrip"'>
+            AND ifnull(s.ctrip_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Qunar"'>
+            AND s.qunar_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Qunar"'>
+            AND ifnull(s.qunar_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Meituan"'>
+            AND s.meituan_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Meituan"'>
+            AND ifnull(s.meituan_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Feizhu"'>
+            AND s.feizhu_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Feizhu"'>
+            AND ifnull(s.feizhu_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Tcyl"'>
+            AND s.tcyl_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Tcyl"'>
+            AND ifnull(s.tcyl_sale_status,0) = 0
+        </if>
+        )
+        a
+        LEFT JOIN  t_baseinfo_hotel_sort
+        tbhs
+        ON
+        tbhs.hotel_id = a.hotel_id
+        AND tbhs.org_code = #{companyCode}
+        ORDER BY sortRank ASC,hotelId DESC
+    </select>
+
+    <select id="querySaleProducts" parameterType="com.mgs.product.dto.QueryProductRequestDTO" resultType="com.mgs.product.dto.ProductTempDTO">
+        SELECT
+            h.hotel_id                hotelId,
+            h.hotel_name              hotelName,
+            r.room_id                 roomId,
+            r.room_name               roomName,
+            p.product_id              productId,
+            p.product_name            productName,
+            p.breakfast_qty           breakfastQty,
+            p.bed_types               bedTypes,
+            p.currency                currency,
+            p.supplier_code           supplierCode,
+            o.org_name                supplierName,
+            p.purchase_type           purchaseType,
+            s.b2b_sale_status         b2bSaleStatus,
+            s.b2c_sale_status         b2cSaleStatus,
+            s.ctrip_sale_status       ctripSaleStatus,
+            s.feizhu_sale_status      feizhuSaleStatus,
+            s.meituan_sale_status     meituanSaleStatus,
+            s.qunar_sale_status       qunarSaleStatus,
+            s.tcyl_sale_status        tcylSaleStatus
+        FROM
+            t_baseinfo_hotel h,
+            t_baseinfo_room r,
+            t_pro_product p,
+            t_pro_sale_status s,
+            t_org_company_supplier cs,
+            t_org_organization o
+        WHERE
+            h.hotel_id = p.hotel_id
+        AND r.room_id = p.room_id
+        AND p.active = 1
+        AND s.active = 1
+        AND p.supplier_code = o.org_code
+        AND s.product_id = p.product_id
+        AND s.company_code = #{companyCode}
+        AND cs.company_code = s.company_code
+        AND cs.org_id = o.org_id
+        AND cs.available_status = 1
+        AND p.hotel_id in
+        <foreach collection="hotelIdList" item="item" index="index" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+        <if test="null != supplierCode and supplierCode != '' ">
+            AND p.supplier_code = #{supplierCode}
+        </if>
+        <if test="null != roomId and roomId != '' ">
+            AND r.room_id= #{roomId}
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "B2B"'>
+            AND s.b2b_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "B2B"'>
+            AND ifnull(s.b2b_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "B2C"'>
+            AND s.b2c_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "B2C"'>
+            AND ifnull(s.b2c_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Ctrip"'>
+            AND s.ctrip_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Ctrip"'>
+            AND ifnull(s.ctrip_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Qunar"'>
+            AND s.qunar_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Qunar"'>
+            AND ifnull(s.qunar_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Meituan"'>
+            AND s.meituan_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Meituan"'>
+            AND ifnull(s.meituan_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Feizhu"'>
+            AND s.feizhu_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Feizhu"'>
+            AND ifnull(s.feizhu_sale_status,0) = 0
+        </if>
+        <if test='null != saleStatus and saleStatus == "1" and channelCode == "Tcyl"'>
+            AND s.tcyl_sale_status = 1
+        </if>
+        <if test='null != saleStatus and saleStatus == "0" and channelCode == "Tcyl"'>
+            AND ifnull(s.tcyl_sale_status,0) = 0
+        </if>
+        <if test="null != purchaseType and purchaseType != '' ">
+            AND p.purchase_type = #{purchaseType}
+        </if>
+    </select>
+
+    <select id="queryProduct" parameterType="java.lang.Integer" resultType="com.mgs.product.dto.ProductDTO">
+        SELECT
+            p.product_id               productId,
+            p.product_name             productName,
+            p.supplier_code            supplierCode,
+            p.quota_account_id         quotaAccountId,
+            o.org_name                 supplierName,
+            p.hotel_id                 hotelId,
+            h.hotel_name               hotelName,
+            p.room_id                  roomId,
+            r.room_name                roomName,
+            p.breakfast_qty            breakfastQty,
+            p.bed_types                bedTypes,
+            p.purchase_type            purchaseType,
+            p.remark                   remark,
+            p.currency                 currency,
+            p.advance_payment_id       advancePaymentId
+        FROM
+            t_pro_product p,
+            t_baseinfo_hotel h,
+            t_baseinfo_room r,
+            t_org_organization o
+        WHERE
+            p.hotel_id = h.hotel_id
+        AND p.room_id = r.room_id
+        AND p.supplier_code = o.org_code
+        AND p.product_id = #{productId}
+    </select>
+
+    <!--按照日期查询产品底价-->
+    <select id="queryTotalAmt" parameterType="com.mgs.product.dto.ProductOrderQueryRequestDTO" resultMap="queryTotalAmt">
+    SELECT
+    tpp.product_id productId,
+    tprice.base_price basePrice,
+    tprice.sale_date saleDate
+    FROM t_pro_product tpp
+    LEFT JOIN
+    t_pro_price tprice
+    ON
+    tprice.product_id = tpp.product_id
+    WHERE
+    tpp.hotel_id = #{hotelId}
+    AND tpp.room_id = #{roomId}
+    AND  tprice.sale_date BETWEEN
+    #{startDate} AND
+    #{endDate}
+    <if test='null != supplierCode and supplierCode!=""'>
+            AND tpp.supplier_code = #{supplierCode}
+    </if>
+    </select>
+    <resultMap id="queryTotalAmt" type="com.mgs.product.dto.TotalAmtDTO">
+            <result column="productId" property="productId"/>
+            <result column="basePrice" property="basePrice"/>
+            <result column="saleDate" property="saleDate"/>
+    </resultMap>
+
+    <select id="queryProductLogList" parameterType="java.util.Map" resultType="com.mgs.product.dto.ProductLogDTO">
+        SELECT
+          p.content content,
+          p.created_dt createdDt,
+          p.created_by createdBy,
+          p.operation_week operationWeek
+        FROM t_pro_log p
+        WHERE p.product_id = #{productId} AND p.start_date  &lt;= #{saleDate} AND p.end_date >= #{saleDate}
+        ORDER BY p.id DESC
+    </select>
+
+    <select id="queryProductSaleLogList" parameterType="java.util.Map" resultType="com.mgs.product.dto.ProductSaleLogDTO">
+        SELECT
+          p.content content,
+          p.created_dt createdDt,
+          p.created_by createdBy,
+          p.operation_week operationWeek
+        FROM t_pro_sale_log p
+        WHERE p.product_id = #{productId}
+             AND p.operation_type = #{operationType} AND p.company_code = #{companyCode}
+        <if test="saleDate != null and saleDate != ''">
+            AND p.start_date &lt;= #{saleDate} AND p.end_date >= #{saleDate}
+        </if>
+        <if test="channelCode != null and channelCode != ''">
+            AND p.channel_code = #{channelCode}
+        </if>
+        ORDER BY p.id DESC
+    </select>
+    <!-- 根据供应商编码查询运营商编码-->
+    <select id="getCompanyCode" resultType="java.lang.String">
+            SELECT
+            tocs.company_code companyCode,
+            too.org_code supplierCode
+            FROM t_org_organization too
+            LEFT JOIN t_org_company_supplier tocs
+            ON too.org_id  = tocs.org_id
+            WHERE too.org_code = #{supplierCode}
+    </select>
+</mapper>

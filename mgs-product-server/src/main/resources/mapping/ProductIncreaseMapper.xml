@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductIncreaseMapper" >
+    <select id="queryOneDayIncrease" parameterType="java.util.Map"
+            resultType="com.mgs.product.domain.ProductIncreasePO">
+        SELECT
+            company_code       companyCode,
+            product_id         productId,
+            channel_id         channelId,
+            start_date         startDate,
+            end_date           endDate,
+            adjustment_type    adjustmentType,
+            modified_amt       modifiedAmt,
+            created_by         createdBy
+        FROM
+          t_pro_increase
+        where week_str like concat(concat('%',#{week}),'%')
+        and start_date &lt;= #{saleDate}
+        and end_date >= #{saleDate}
+        GROUP BY
+            company_code,
+            product_id,
+            channel_id
+        ORDER BY
+          increase_id DESC
+    </select>
+</mapper>

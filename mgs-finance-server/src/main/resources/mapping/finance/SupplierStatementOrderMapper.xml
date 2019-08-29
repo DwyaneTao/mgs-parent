@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.statement.mapper.SupplierStatementOrderMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.finance.statement.domain.SupplierStatementOrderPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="statement_id" jdbcType="INTEGER" property="statementId" />
+    <result column="supply_order_id" jdbcType="INTEGER" property="supplyOrderId" />
+    <result column="supply_order_code" jdbcType="VARCHAR" property="supplyOrderCode" />
+    <result column="hotel_name" jdbcType="VARCHAR" property="hotelName" />
+    <result column="room_name" jdbcType="VARCHAR" property="roomName" />
+    <result column="product_name" jdbcType="VARCHAR" property="productName" />
+    <result column="guest" jdbcType="VARCHAR" property="guest" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="room_qty" jdbcType="INTEGER" property="roomQty" />
+    <result column="currency" jdbcType="INTEGER" property="currency" />
+    <result column="payable_amt" jdbcType="DECIMAL" property="payableAmt" />
+    <result column="order_create_date" jdbcType="TIMESTAMP" property="orderCreateDate" />
+    <result column="confirmation_status" jdbcType="INTEGER" property="confirmationStatus" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+
+  <resultMap id="queryStatementSupplyOrderListBaseResultMap" type="com.mgs.finance.remote.statement.response.StatementSupplyOrderDTO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="statementOrderId" />
+    <result column="supply_order_code" jdbcType="VARCHAR" property="supplyOrderCode" />
+    <result column="hotel_name" jdbcType="VARCHAR" property="hotelName" />
+    <result column="room_name" jdbcType="VARCHAR" property="roomName" />
+    <result column="guest" jdbcType="VARCHAR" property="guest" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="room_qty" jdbcType="INTEGER" property="roomQty" />
+    <result column="currency" jdbcType="INTEGER" property="currency" />
+    <result column="payable_amt" jdbcType="DECIMAL" property="payableAmt" />
+    <result column="confirmation_status" jdbcType="INTEGER" property="confirmationStatus" />
+    <result column="order_create_date" jdbcType="TIMESTAMP" property="createdDt" />
+  </resultMap>
+
+  <insert id="saveBatchStatementOrder" parameterType="com.mgs.finance.statement.dto.InsertStatementSupplyOrderDTO">
+    INSERT INTO f_supplier_statement_order (
+    statement_id,
+    supply_order_id,
+    supply_order_code,
+    hotel_name,
+    room_name,
+    product_name,
+    guest,
+    start_date,
+    end_date,
+    room_qty,
+    currency,
+    payable_amt,
+    order_create_date,
+    confirmation_status,
+    created_by,
+    created_dt
+    ) SELECT
+    #{statementId},
+    so.id,
+    so.supply_order_code,
+    so.hotel_name,
+    so.room_name,
+    so.product_name,
+    o.guest,
+    so.start_date,
+    so.end_date,
+    so.room_qty,
+    so.base_currency,
+    so.supply_order_amt-sf.paid_amt,
+    o.created_dt,
+    so.confirmation_status,
+    #{operator},
+    SYSDATE()
+    FROM o_order o INNER JOIN o_supply_order so ON o.id=so.order_id
+    INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id
+    WHERE o.company_code=#{companyCode}
+    AND so.settlement_type!=3
+    AND so.confirmation_status IN (1,2)
+    AND sf.check_status=1
+    AND so.supply_order_amt - sf.paid_amt!=0
+    <choose>
+      <when test="dateQueryType==0">
+        <if test="startDate!=null and startDate!=''">
+          AND o.created_dt >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+        </if>
+      </when>
+      <when test="dateQueryType==1">
+        <if test="startDate!=null and startDate!=''">
+          AND so.start_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.start_date &lt;= #{endDate}
+        </if>
+      </when>
+      <when test="dateQueryType==2">
+        <if test="startDate!=null and startDate!=''">
+          AND so.end_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.end_date &lt;= #{endDate}
+        </if>
+      </when>
+    </choose>
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND so.supplier_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          AND so.supplier_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="supplyOrderIdList != null and supplyOrderIdList.size > 0">
+      AND so.id IN
+      <foreach collection="supplyOrderIdList" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </if>
+    ORDER BY o.created_dt
+  </insert>
+
+  <update id="updateStatementOrderList" parameterType="com.mgs.finance.remote.statement.request.StatementIdDTO">
+    UPDATE  f_supplier_statement_order sso INNER JOIN o_supply_order so ON sso.supply_order_code=so.supply_order_code
+    INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id
+    INNER JOIN o_order o ON o.id=so.order_id
+    SET
+    sso.hotel_name=so.hotel_name,
+    sso.room_name=so.room_name,
+    sso.product_name=so.product_name,
+    sso.guest=o.guest,
+    sso.start_date=so.start_date,
+    sso.end_date=so.end_date,
+    sso.room_qty=so.room_qty,
+    sso.currency=so.base_currency,
+    sso.payable_amt=so.supply_order_amt-sf.paid_amt,
+    sso.confirmation_status=so.confirmation_status,
+    sso.modified_by=#{operator},
+    sso.modified_dt=SYSDATE()
+    WHERE sso.statement_id=#{statementId}
+  </update>
+
+  <select id="queryStatementOrderList" parameterType="com.mgs.finance.remote.statement.request.QueryStatementSupplyOrderListDTO"
+          resultMap="queryStatementSupplyOrderListBaseResultMap">
+    SELECT
+    *
+    FROM f_supplier_statement_order so
+    WHERE so.statement_id=#{statementId}
+    <if test="supplyOrderCode!=null and supplyOrderCode!=''">
+      AND so.supply_order_code=#{supplyOrderCode}
+    </if>
+    ORDER BY so.id DESC
+  </select>
+
+  <update id="updateStatementAmount" parameterType="com.mgs.finance.remote.statement.request.QueryStatementTotalAmountDTO">
+    UPDATE
+    f_supplier_statement s
+    SET
+    s.currency=#{currency},
+    s.statement_amt=#{amount},
+    <if test='amount=="0"'>
+       s.unpaid_amt=0
+    </if>
+    <if test='amount!="0"'>
+       s.unpaid_amt=#{amount}-s.paid_amt
+    </if>
+
+    WHERE s.id = #{statementId}
+  </update>
+
+  <select id="queryStatementAmount" parameterType="com.mgs.finance.remote.statement.request.StatementIdDTO"
+    resultType="com.mgs.finance.remote.statement.request.QueryStatementTotalAmountDTO">
+    SELECT
+     so.statement_id statementId,
+     so.currency currency,
+     sum(so.payable_amt) amount
+    FROM
+     f_supplier_statement_order so
+    WHERE
+     so.statement_id = #{statementId}
+    GROUP BY
+     so.statement_id,
+     so.currency
+  </select>
+
+  <select id="queryNewStatementAmount" parameterType="com.mgs.finance.remote.statement.request.StatementIdDTO"
+          resultType="java.math.BigDecimal">
+    SELECT
+    sum(so.supply_order_amt - IFNULL(sf.paid_amt,0))
+    FROM
+    f_supplier_statement_order sso INNER JOIN o_supply_order so ON sso.supply_order_code = so.supply_order_code
+    INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id
+    WHERE sso.statement_id=#{statementId}
+  </select>
+
+  <update id="updateSupplyOrderFinance" parameterType="com.mgs.finance.statement.dto.UpdateSupplyOrderFinanceDTO">
+    UPDATE f_supplier_statement_order sso INNER JOIN o_supply_order so ON sso.supply_order_code = so.supply_order_code
+    INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id
+    <trim prefix="set" suffixOverrides=",">
+      <if test="checkStatus != null">
+        sf.check_status = #{checkStatus},
+      </if>
+      <if test="isUpdateSettlementStatus != null and isUpdateSettlementStatus == 1">
+        sf.settlement_status =
+        (CASE WHEN (sf.paid_amt+sso.payable_amt)!=so.supply_order_amt THEN
+        0
+        ELSE
+        1
+        END),
+        sf.settlement_date =
+        (CASE WHEN (sf.paid_amt+sso.payable_amt)!=so.supply_order_amt THEN
+        sf.settlement_date
+        ELSE
+        SYSDATE()
+        END),
+        sf.check_status =
+        (CASE WHEN (sf.paid_amt+sso.payable_amt)!=so.supply_order_amt THEN
+        1
+        ELSE
+        sf.check_status
+        END),
+      </if>
+      <if test="isUpdateSettlementAmount != null and isUpdateSettlementAmount == 1">
+        sf.paid_amt=sf.paid_amt+sso.payable_amt,
+        sf.unpaid_amt=sf.unpaid_amt-sso.payable_amt,
+      </if>
+      <if test="financeLockStatus != null and financeLockStatus == 1">
+        sf.finance_lock_status=1,
+      </if>
+    </trim>
+    WHERE sso.statement_id=#{statementId}
+    <if test="supplyOrderIdList != null and supplyOrderIdList.size > 0">
+      AND so.id IN
+      <foreach collection="supplyOrderIdList" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </if>
+    <if test="statementOrderIdList != null and statementOrderIdList.size > 0">
+      AND sso.id IN
+      <foreach collection="statementOrderIdList" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </if>
+  </update>
+
+  <select id="queryUnCheckOutSupplyOrder" parameterType="com.mgs.finance.remote.statement.request.QueryUnCheckOutSupplyOrderDTO"
+          resultType="com.mgs.finance.remote.statement.response.UnCheckOutSupplyOrderDTO">
+    SELECT
+    so.id supplyOrderId,
+    so.supply_order_code supplyOrderCode,
+    so.hotel_name hotelName,
+    so.room_name roomName,
+    o.guest guest,
+    so.start_date startDate,
+    so.end_date endDate,
+    so.room_qty roomQty,
+    so.base_currency currency,
+    so.supply_order_amt-sf.paid_amt payableAmt,
+    o.created_dt createdDt,
+    so.confirmation_status confirmationStatus
+    FROM o_order o INNER JOIN o_supply_order so ON o.id=so.order_id
+      INNER JOIN o_supply_order_finance sf ON so.id=sf.supply_order_id
+    WHERE o.company_code=#{companyCode}
+    AND so.settlement_type!=3
+    AND so.confirmation_status IN (1,2)
+    AND sf.check_status=1
+    AND so.supply_order_amt - sf.paid_amt!=0
+    <choose>
+      <when test="dateQueryType==0">
+        <if test="startDate!=null and startDate!=''">
+          AND o.created_dt >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+        </if>
+      </when>
+      <when test="dateQueryType==1">
+        <if test="startDate!=null and startDate!=''">
+          AND so.start_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.start_date &lt;= #{endDate}
+        </if>
+      </when>
+      <when test="dateQueryType==2">
+        <if test="startDate!=null and startDate!=''">
+          AND so.end_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.end_date &lt;= #{endDate}
+        </if>
+      </when>
+    </choose>
+    <if test="supplyOrderCode!=null and supplyOrderCode!=''">
+      AND so.supply_order_code=#{supplyOrderCode}
+    </if>
+    <if test="supplierCode!=null and supplierCode!=''">
+      AND so.supplier_code = #{supplierCode}
+    </if>
+  </select>
+
+  <select id="queryUpdatedStatementOrderList" parameterType="com.mgs.finance.remote.statement.request.QueryUpdatedStatementOrderListDTO"
+          resultType="com.mgs.finance.remote.statement.response.UpdatedStatementSupplyOrderDTO">
+    SELECT
+    sso.supply_order_code supplyOrderCode,
+    so.hotel_name hotelName,
+    so.room_name roomName,
+    log.operatedBy,
+    CONCAT(if(sso.room_name!=so.room_name,CONCAT('将房型修改为 "',so.room_name,'"'),''),
+    if(sso.payable_amt!=so.supply_order_amt-sf.paid_amt,CONCAT('将供货单金额修改为 "',so.supply_order_amt-sf.paid_amt,'"'),''),
+    if(sso.guest!=o.guest,CONCAT('将入住人修改为 "',o.guest,'"'),''))content
+    FROM f_supplier_statement_order sso INNER JOIN o_supply_order so ON sso.supply_order_code=so.supply_order_code
+    INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id
+    INNER JOIN o_order o ON o.id=so.order_id
+    INNER JOIN (SELECT l.order_id,l.created_by operatedBy FROM o_order_log l WHERE l.id IN (SELECT max(id) FROM o_order_log GROUP BY order_id)) log
+    ON o.id=log.order_id
+    WHERE sso.statement_id=#{statementId}
+    AND (sso.room_name!=so.room_name
+    OR sso.payable_amt!=so.supply_order_amt-sf.paid_amt
+    OR sso.guest!=o.guest)
+    ORDER BY sso.id DESC
+  </select>
+</mapper>

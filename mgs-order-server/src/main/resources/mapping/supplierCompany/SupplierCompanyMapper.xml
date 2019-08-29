@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.SupplierCompanyMapper">
+
+    <select id="querySupplierCompany" parameterType="com.mgs.order.domain.SupplierCompanyPO"
+            resultType="com.mgs.order.domain.SupplierCompanyPO">
+	     SELECT
+            tooa.a_company_id aCompanyId,
+            tooa.org_id orgId,
+            tooa.user_name userName,
+            tooa.user_tel user_tel,
+            tooa.settlement_type settlementType,
+            tooa.credit_line creditLine,
+            tooa.sale_manager_id saleManagerId,
+            u.user_name  saleManagerName,
+            tooa.company_code companyCode,
+            tooa.available_status availableStatus
+        FROM
+            t_org_company_agent tooa
+        INNER JOIN t_org_organization too ON too.org_id = tooa.org_id
+        INNER JOIN t_auth_user u on u.user_id = tooa.sale_manager_id
+        WHERE
+            too.org_code = 'SC10058'
+    </select>
+</mapper>

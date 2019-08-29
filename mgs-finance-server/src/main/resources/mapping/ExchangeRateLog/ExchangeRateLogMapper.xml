@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.mapper.ExchangeRateLogMapper">
+
+    <select id="queryExchangeRateLog" parameterType="com.mgs.finance.remote.request.QueryExchangeRateLogDTO"
+            resultType="com.mgs.finance.dto.ExchangeRateLogDTO">
+	 SELECT
+	 e.created_by  createdBy,
+	 e.content  content,
+	 e.created_date createdDt
+	 FROM t_exchangerate_log e
+	 WHERE e.active=1
+	 <if test="exchangeRateId!=''">
+        AND e.currency_id=#{exchangeRateId}
+	 </if>
+	 GROUP BY e.created_date DESC
+    </select>
+</mapper>

@@ -1,0 +1,60 @@
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: mgs-platform
+  redis:
+    host: 39.108.73.131
+    database: 0
+    port: 6379
+    password: 123456
+  ## Freemarker 配置
+  freemarker:
+    template-loader-path: classpath:templates/
+    cache: false
+    charset: utf-8
+    check-template-location: true
+    content-type: application/vnd.ms-excel
+    expose-request-attributes: false
+    expose-session-attributes: false
+    request-context-attribute: request
+    suffix: .ftl
+
+server:
+  port: 8089
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://127.0.0.1:19010/eureka/
+
+
+#切换feignclient到apatch http client
+feign:
+    httpclient:
+    enabled: true
+
+
+lombok:
+  equalsAndHashCode:
+    callSuper: call
+
+
+#远程ftp配置
+ftp:
+  addr:
+  port:
+  userName:
+  passWord:
+  rootDir:
+  schema:
+
+
+#调用feign超时时间
+ribbon:
+  ReadTimeout: 60000
+  ConnectTimeout: 60000
+  ServerListRefreshInterval: 1000
+
+
+

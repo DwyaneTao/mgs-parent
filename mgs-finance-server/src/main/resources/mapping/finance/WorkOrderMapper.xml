@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.workorder.mapper.WorkOrderMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.finance.workorder.domain.WorkOrderPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="work_order_code" jdbcType="VARCHAR" property="workOrderCode" />
+    <result column="work_order_status" jdbcType="INTEGER" property="workOrderStatus" />
+    <result column="business_type" jdbcType="INTEGER" property="businessType" />
+    <result column="business_code" jdbcType="VARCHAR" property="businessCode" />
+    <result column="org_code" jdbcType="VARCHAR" property="orgCode" />
+    <result column="org_name" jdbcType="VARCHAR" property="orgName" />
+    <result column="content" jdbcType="VARCHAR" property="content" />
+    <result column="currency" jdbcType="INTEGER" property="currency" />
+    <result column="amount" jdbcType="DECIMAL" property="amount" />
+    <result column="payment_type" jdbcType="INTEGER" property="paymentType" />
+    <result column="payer" jdbcType="VARCHAR" property="payer" />
+    <result column="receiver" jdbcType="VARCHAR" property="receiver" />
+    <result column="remark" jdbcType="VARCHAR" property="remark" />
+    <result column="company_code" jdbcType="VARCHAR" property="companyCode" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+
+  <select id="queryWorkOrderList" parameterType="com.mgs.finance.remote.workorder.request.QueryWorkOrderListDTO" resultType="com.mgs.finance.remote.workorder.response.WorkOrderListResponseDTO">
+    SELECT
+      wo.id workOrderId,
+      wo.work_order_code workOrderCode,
+      wo.created_by createdBy,
+      wo.content content,
+      wo.business_code businessCodes,
+      wo.org_name orgName,
+      if(wo.amount &gt;= 0,wo.amount,0) collectionAmt,
+      if(wo.amount &lt;= 0,0-wo.amount,0) paymentAmt,
+      wo.work_order_status workOrderStatus,
+      date_add(wo.created_dt,interval 1 day) dueDate,
+      wo.currency currency,
+      if(wo.work_order_status = 1, if(DATEDIFF(wo.modified_dt,date_add(wo.created_dt,interval 1 day))&gt;0,DATEDIFF(wo.modified_dt,date_add(wo.created_dt,interval 1 day)),0) ,
+        if(DATEDIFF(CURDATE(),date_add(wo.created_dt,interval 1 day))&gt;0,DATEDIFF(CURDATE(),date_add(wo.created_dt,interval 1 day)),0)) overdueDays,
+      wo.business_type businessType
+    FROM f_work_order wo
+    WHERE wo.company_code=#{companyCode}
+    <choose>
+      <when test="agentCode!=null and agentCode!=''">
+        AND wo.org_code=#{agentCode}
+      </when>
+      <otherwise>
+        <if test="agentName != null and agentName != ''">
+          and wo.org_name LIKE concat(concat('%',#{agentName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND wo.org_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          and wo.org_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="startDate!=null and startDate!=''">
+      AND wo.created_dt &gt;= #{startDate}
+    </if>
+    <if test="endDate!=null and endDate!=''">
+      AND wo.created_dt &lt;= #{endDate}
+    </if>
+    <if test="workOrderStatus !=null and workOrderStatus != ''">
+      AND wo.work_order_status = #{workOrderStatus}
+    </if>
+    <if test="financeType !=null and financeType != ''">
+      <if test="financeType==0">
+        AND wo.amount &gt;= 0
+      </if>
+      <if test="financeType==1">
+        AND wo.amount &lt; 0
+      </if>
+    </if>
+    ORDER BY wo.id DESC
+  </select>
+
+  <select id="financeNotificationLogList" parameterType="com.mgs.finance.remote.workorder.request.BusinessCodeDTO" resultType="com.mgs.finance.remote.workorder.response.NotificationLogDTO">
+    SELECT
+      wo.work_order_code workOrderCode,
+      if(wo.amount &gt;= 0,wo.amount,0) collectionAmt,
+      if(wo.amount &lt;= 0,0-wo.amount,0) paymentAmt,
+      wo.payment_type paymentType,
+      wo.work_order_status workOrderStatus,
+      wo.created_dt createdDt,
+      wo.created_by createdBy
+    FROM f_work_order wo
+    WHERE wo.business_code LIKE concat(concat('%',#{businessCode}),'%')
+    ORDER BY wo.id DESC
+  </select>
+</mapper>

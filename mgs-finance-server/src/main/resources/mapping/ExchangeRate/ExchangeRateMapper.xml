@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.mapper.ExchangeRateMapper">
+
+    <select id="queryExchangeRate" parameterType="com.mgs.finance.dto.ExchangeRateDTO"
+            resultType="com.mgs.finance.domain.ExchangeRatePO">
+       SELECT
+	     e.exchangerate_Id exchangeRateId,
+	     e.exchange_currency exchangeCurrency,
+	     e.currency_name currencyName,
+	     e.exchangerate exchangeRate,
+	     e.reversed_exchangerate  reversedExchangeRate,
+	     e.modified_dt modifiedDt,
+	     e.created_by createdBy,
+	     e.created_dt createdDt,
+	     e.modified_by modifiedBy,
+	     e.active
+        FROM
+	      t_exchangerate e
+        WHERE
+		e.active=1
+         <if test="exchangeCurrencies!=''">
+         AND e.exchange_currency = #{exchangeCurrencies}
+		 </if>
+        ORDER BY  e.exchangerate_Id   DESC
+    </select>
+</mapper>

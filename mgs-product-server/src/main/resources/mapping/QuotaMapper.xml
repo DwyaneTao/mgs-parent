@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.QuotaMapper">
+
+    <select id="queryQuota" resultType="com.mgs.product.domain.QuotaPO" parameterType="java.util.Map">
+         SELECT
+	           quota_id quotaId ,
+	           quota_account_id  quotaAccountId ,
+	           sale_date saleDate ,
+	           quota quota ,
+		       room_status roomStatus,
+		       over_draft_status  overDraftStatus,
+	           remaining_quota remainingQuota
+         FROM
+	         t_pro_quota q
+         WHERE
+	        q.quota_account_id = #{quotaAccountId}
+		<if test="saleDate!=null">
+			AND(
+			<foreach collection="saleDate" item="item" open="" separator="OR" close="">
+				q.sale_date =#{item}
+			</foreach>
+			)
+		</if>
+    </select>
+
+	<select id="queryQuotaAccountId" resultType="java.lang.String" parameterType="java.lang.Integer">
+    SELECT
+	    quota_account_id
+    FROM
+	    t_pro_product p
+    WHERE
+	    p.active = 1
+	AND
+	    p.product_id = #{productId}
+	</select>
+
+
+
+
+</mapper>

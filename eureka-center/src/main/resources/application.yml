@@ -1,0 +1,13 @@
+server:
+  port: 19010
+  application:
+    name: eureka-center
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    serviceUrl:
+      defaultZonehttp: //${eureka.instance.hostname}:${server.port}/eureka

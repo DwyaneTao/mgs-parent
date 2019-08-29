@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.lock.mapper.FinanceLockMapper">
+  <select id="queryOrderList" parameterType="com.mgs.finance.remote.lock.request.QueryOrderFinanceLockListDTO"
+          resultType="com.mgs.finance.remote.lock.response.OrderFinanceLockDTO">
+    SELECT
+      o.id orderId,
+      o.order_code orderCode,
+      o.created_dt createdDt,
+      o.agent_name agentName,
+      o.hotel_Name hotelName,
+      o.room_name roomName,
+      o.start_date startDate,
+      o.end_date endDate,
+      o.guest guest,
+      o.room_qty roomQty,
+      f.finance_lock_status lockStatus
+    FROM o_order o,o_order_finance f
+    WHERE o.id=f.order_id
+    AND o.company_code=#{companyCode}
+    <choose>
+      <when test="agentCode!=null and agentCode!=''">
+        AND o.agent_code=#{agentCode}
+      </when>
+      <otherwise>
+        <if test="agentName != null and agentName != ''">
+          AND o.agent_name LIKE concat(concat('%',#{agentName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="lockStatus != null and lockStatus  != ''">
+      AND f.finance_lock_status = #{lockStatus}
+    </if>
+    <if test="orderCode!=null and orderCode!=''">
+      AND o.order_code=#{orderCode}
+    </if>
+    ORDER BY o.id DESC
+  </select>
+
+  <update id="lockOrder" parameterType="com.mgs.finance.remote.lock.request.FinanceLockOrderDTO">
+    UPDATE o_order_finance f SET f.finance_lock_status=#{lockStatus} WHERE f.order_id=#{orderId}
+  </update>
+
+  <select id="checkOrderCanLock" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+    SELECT
+      f.id
+    FROM f_agent_statement_order f
+    WHERE f.order_id = #{orderId} AND f.confirmation_status = 1
+  </select>
+
+
+  <select id="querySupplyOrderList" parameterType="com.mgs.finance.remote.lock.request.QuerySupplyOrderFinanceLockListDTO"
+          resultType="com.mgs.finance.remote.lock.response.SupplyOrderFinanceLockDTO">
+    SELECT
+      so.id supplyOrderId,
+      so.supply_order_code supplyOrderCode,
+      o.created_dt createdDt,
+      so.supplier_name supplierName,
+      so.hotel_Name hotelName,
+      so.room_name roomName,
+      so.start_date startDate,
+      so.end_date endDate,
+      o.guest guest,
+      so.room_qty roomQty,
+      sf.finance_lock_status lockStatus
+    FROM o_order o,o_supply_order so,o_supply_order_finance sf
+    WHERE o.id=so.order_id AND so.id=sf.supply_order_id
+    AND o. company_code=#{companyCode}
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND so.supplier_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          AND so.supplier_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="lockStatus !=null and lockStatus != ''">
+      AND sf.finance_lock_status = #{lockStatus}
+    </if>
+    <if test="supplyOrderCode!=null and supplyOrderCode!=''">
+      AND so.supply_order_code=#{supplyOrderCode}
+    </if>
+    ORDER BY o.id DESC
+  </select>
+
+  <update id="lockSupplyOrder" parameterType="com.mgs.finance.remote.lock.request.FinanceLockSupplyOrderDTO">
+    UPDATE o_supply_order_finance sf SET sf.finance_lock_status=#{lockStatus} WHERE sf.supply_order_id=#{supplyOrderId}
+  </update>
+
+  <select id="checkSupplyOrderCanLock" parameterType="java.lang.Integer" resultType="java.lang.Integer">
+    SELECT
+       f.id
+     FROM f_supplier_statement_order f
+     WHERE f.supply_order_id = #{supplyOrderId} AND f.confirmation_status = 1
+  </select>
+</mapper>

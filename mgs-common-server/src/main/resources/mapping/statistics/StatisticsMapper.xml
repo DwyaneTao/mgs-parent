@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.statistics.mapper.StatisticsMapper">
+
+    <!--<select id="query" parameterType=" " resultType="" >-->
+
+
+
+
+    <!--</select>-->
+    
+    <select id="queryStatementStatistics" parameterType="java.util.Map" resultType="com.mgs.statistics.dto.AgentStatisticsDTO">
+        SELECT
+          COUNT(if(DATEDIFF(CURDATE(),s.settlement_date)>0,s.settlement_date, NULL)) overdueStatement,
+          COUNT(if(s.statement_status = 1, s.statement_status, NULL)) unconfirmedStatement
+        FROM f_agent_statement s
+        WHERE s.company_code=#{companyCode} AND s.settlement_status = 0
+    </select>
+
+    <select id="queryStatementOrderStatistics" parameterType="java.util.Map" resultType="java.lang.Integer">
+        SELECT
+		   COUNT(if(DATEDIFF(CURDATE(), f.created_dt) > 0, f.created_dt, NULL))
+		FROM o_order o,o_order_finance f
+		WHERE
+	   	    o.id = f.order_id
+	   	  AND o.company_code = #{companyCode}
+	   	  AND f.settlement_status = 0
+	   	  AND o.settlement_type = 3
+    </select>
+
+    <select id="queryCashierStatistics" parameterType="java.util.Map" resultType="com.mgs.statistics.dto.CashierStatisticsDTO">
+        SELECT
+          COUNT(if(t.amount > 0, t.amount, NULL)) receivableAmtAccounting,
+          COUNT(if(t.amount &lt; 0, t.amount, NULL)) payableAmtAccounting
+        FROM f_work_order t
+        WHERE t.work_order_status = 0 AND t.company_code = #{companyCode}
+    </select>
+    
+    <select id="queryAgentOrderUnReceived" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+          SUM(f.unreceived_amt)
+        FROM o_order o,o_order_finance f
+        WHERE o.company_code = #{companyCode}
+        AND o.id = f.order_id
+        AND	((o.settlement_type = 3) OR (o.settlement_type != 3 AND f.check_status &lt; 2))
+    </select>
+
+    <select id="queryAgentStatementUnReceived" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+		  SUM(f.unreceived_amt)
+		FROM f_agent_statement f
+		WHERE f.company_code = #{companyCode}
+	</select>
+
+    <select id="querySupplierOrderUnpaid" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+          SUM(f.unreceived_amt)
+        FROM o_order o,o_order_finance f
+        WHERE o.company_code = #{companyCode}
+        AND o.id = f.order_id
+        AND	((o.settlement_type = 3) OR (o.settlement_type != 3 AND f.check_status &lt; 2))
+    </select>
+
+    <select id="querySupplierStatementUnpaid" parameterType="java.util.Map" resultType="java.math.BigDecimal">
+        SELECT
+		  SUM(f.unpaid_amt)
+		FROM f_supplier_statement f
+		WHERE f.company_code = #{companyCode}
+    </select>
+
+    <select id="queryCashStatusStatistics" parameterType="java.util.Map" resultType="com.mgs.statistics.dto.CashStatusStatisticsDTO">
+        SELECT
+          SUM(if(f.amount > 0, f.amount, 0)) income,
+          SUM(if(f.amount &lt;= 0, -f.amount, 0)) expenditure,
+          SUM(f.amount) netInflow
+        FROM f_work_order f
+        WHERE f.company_code = #{companyCode} AND f.work_order_status = 1
+           AND f.created_dt >= #{startDate} AND f.created_dt &lt; #{endDate}
+    </select>
+
+
+    <select id="queryBusinessStatistics" parameterType="java.util.Map"
+            resultType="com.mgs.statistics.domain.StatisticsPO">
+      SELECT
+         SUM(timestampdiff(day,o.start_date,o .end_date)) day,
+	     SUM( o.room_qty ) saleNightQty,
+	     SUM( o.order_amt ) sales,
+	     SUM( o.profit ) profit
+      FROM
+	     o_order o
+	  WHERE
+	     o.company_code = #{companyCode}
+	  AND
+	     DATE_FORMAT( created_dt, '%Y%m' ) = DATE_FORMAT( #{data} , '%Y%m' )
+    </select>
+
+
+    <select id="queryYearBusinessStatistics" parameterType="java.util.Map"
+            resultType="com.mgs.statistics.dto.BusinessOverviewStatisticsDTO">
+      SELECT
+	     date_format( o.created_dt, '%Y-%m' ) period,
+	     count( o.id ) orderQty,
+	     SUM( timestampdiff( DAY, o.start_date, o.end_date ) ) * SUM( o.room_qty ) saleNightQty,
+	     SUM( o.profit ) / SUM( o.order_amt )  profitRate,
+	     SUM( o.order_amt ) sales,
+	     SUM( s.baseprice ) costs,
+	     SUM( o.profit ) profit
+      FROM
+	      (
+             SELECT
+	           ord.id,
+	           ord.order_amt,
+	           ord.profit,
+	           ord.created_dt,
+	           ord.company_code,
+	           ord.start_date,
+	           ord.end_date,
+	           ord.room_qty
+             FROM
+	           o_order ord
+	      ) o
+	         LEFT JOIN ( SELECT os.order_id, sum( os.supply_order_amt * os.rate ) baseprice FROM o_supply_order os GROUP BY os.order_id ) s ON o.id = s.order_id
+      WHERE
+	      o.company_code = #{companyCode}
+       GROUP BY
+	      date_format( o.created_dt, '%Y-%m' )
+    </select>
+
+    <select id="querySalesDetailStatistics" parameterType="com.mgs.statistics.dto.QuerySaleStatisticsDTO" resultType="com.mgs.statistics.dto.SalesDetailStatisticsDTO">
+        SELECT
+	      o.order_code                                                 orderCode,
+	      o.hotel_name                                                 hotelName,
+	      o.room_name                                                  roomName,
+	      o.product_name                                               productName,
+	      o.created_dt                                                 createdDt,
+	      o.start_date                                                 startDate,
+	      o.end_date                                                   endDate,
+	      o.room_qty                                                   roomQty,
+	      timestampdiff( DAY, o.start_date, o.end_date ) * o.room_qty  nightQty,
+	      o.guest                                                      guest,
+	      o.order_confirmation_status                                  orderConfirmationStatus,
+	      o.settlement_type                                            orderSettlementType,
+	      o.created_by                                                 createdBy,
+	      o.order_owner_name                                           orderOwnerName,
+	      u1.user_name                                                 saleManagerName,
+	      o.channel_code                                               agentType,
+	      o.agent_name                                                 agentName,
+	      o.agent_code                                                 agentCode,
+	      o.channel_order_code                                         channelOrderCode,
+	      o.sale_currency                                              saleCurrency,
+	      o.order_amt                                                  receivableAmt,
+	      f.received_amt                                               receivedAmt,
+	      f.unreceived_amt                                             unreceivedAmt,
+
+
+	      s.supply_order_code                                          supplyOrderCode,
+	      s.room_name                                                  supplyOrderRoomName,
+	      s.product_name                                               supplyOrderProductName,
+	      s.start_date                                                 supplyOrderStartDate,
+	      s.end_date                                                   supplyOrderEndDate,
+	      s.room_qty                                                   supplyOrderRoomQty,
+	      timestampdiff( DAY, s.start_date, s.end_date ) * s.room_qty  supplyOrderNightQty,
+	      o.guest                                                      supplyOrderGuest,
+	      s.confirmation_status                                        supplyOrderConfirmationStatus,
+	      p.purchase_type                                              purchaseType,
+	      s.settlement_type                                            supplyOrderSettlementType,
+	      u1.user_name                                                 purchaseManagerName,
+	      s.supplier_name                                              supplierName,
+	      s.supplier_code                                              supplierCode,
+	      s.supplier_order_code                                        supplierOrderCode,
+	      s.confirmation_code                                          confirmationCode,
+	      s.base_currency                                              baseCurrency,
+	      s.supply_order_amt                                           payableAmt,
+	      sf.paid_amt                                                  paidAmt,
+	      sf.unpaid_amt                                                unpaidAmt,
+	      s.supply_order_amt * s.rate                                  equivalentCny,
+	      o.profit                                                     profit
+     FROM
+	             o_order o
+	   LEFT JOIN o_supply_order s          ON o.id = s.order_id
+	   LEFT JOIN o_order_finance f         ON f.order_id = o.id
+	   LEFT JOIN o_supply_product p        ON s.id = p.supply_order_id
+	   LEFT JOIN o_supply_order_finance sf ON sf.supply_order_id = s.id
+	   LEFT JOIN t_auth_user u1            ON u1.user_id =o.merchant_bm
+	   LEFT JOIN t_auth_user u2            ON u2.user_id =s.merchant_pm
+     WHERE
+		        o.company_code = #{companyCode}
+
+		<choose>
+			<when test="dateQueryType==1">
+				<if test="startDate != null and startDate !=''">
+					AND o.start_date &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.start_date &lt;= #{endDate}
+				</if>
+			</when>
+			<when test="dateQueryType==2">
+				<if test="startDate != null and startDate !=''">
+					AND o.end_date &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.end_date &lt;= #{endDate}
+				</if>
+			</when>
+			<otherwise>
+				<if test="startDate != null and startDate !=''">
+					AND o.created_dt &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+				</if>
+			</otherwise>
+		</choose>
+
+		<if test="hotelId!=null and hotelId!=''">
+			AND o.hotel_Id = #{hotelId}
+		</if>
+		<if test="orderCode!=null and orderCode!=''">
+			AND o.order_code = #{orderCode}
+		</if>
+		<if test="channelCode!=null and channelCode!=''">
+			AND o.channel_code = #{channelCode}
+		</if>
+		<if test="agentCode!=null and agentCode!=''">
+			AND o.agent_code = #{agentCode}
+		</if>
+		<if test="orderConfirmationStatus!=null and orderConfirmationStatus!=''">
+			AND o.order_confirmation_status =#{orderConfirmationStatus}
+		</if>
+		<if test="purchaseManagerId!=null and purchaseManagerId!=''">
+			AND merchant_bm = #{purchaseManagerId}
+		</if>
+		<if test="orderOwnerName!=null and orderOwnerName!=''">
+			AND o.order_owner_name=#{orderOwnerName}
+		</if>
+		<if test="orderReceivableType !=null and orderReceivableType == 0">
+			AND o.order_amt > 0
+		</if>
+		<if test="orderReceivableType !=null and orderReceivableType == 1" >
+			AND o.order_amt = 0
+		</if>
+		<if test="supplierCode!=null and  supplierCode !=''" >
+			AND s.supplier_code =#{supplierCode}
+		</if>
+		<if test="supplyOrderConfirmationStatus!=null and supplyOrderConfirmationStatus!=''">
+			AND s.confirmation_status =#{supplyOrderConfirmationStatus}
+		</if>
+		<if test="confirmationCode!=null and confirmationCode!=''">
+			AND s.confirmation_code = #{confirmationCode}
+		</if>
+		<if test="saleManagerId!=null and saleManagerId!=''">
+			AND s.merchant_pm = #{saleManagerName}
+		</if>
+		<if test="supplyOrderPayableType !=null and supplyOrderPayableType==0">
+			AND s.supply_order_amt > 0
+		</if>
+		<if test="supplyOrderPayableType !=null and supplyOrderPayableType==1">
+			AND s.supply_order_amt = 0
+		</if>
+		ORDER BY  o.created_dt  DESC
+    </select>
+
+
+	<select id="querySalesStatistics" parameterType="com.mgs.statistics.dto.QuerySaleStatisticsDTO" resultType="com.mgs.statistics.dto.SaleStatisticsDTO">
+		SELECT
+		    SUM( timestampdiff( DAY, o.start_date, o.end_date ) * o.room_qty ) saleNightQty,
+		    SUM( o.order_amt ) saleAmt,
+		    SUM( f.unreceived_amt ) unreceivedAmt,
+		    SUM( o.profit ) profit,
+		    SUM( o.profit ) / SUM( o.order_amt ) profitRate
+		FROM
+		               o_order o
+		     LEFT JOIN (SELECT s.order_id,s.id ,s.merchant_pm
+		                       FROM( SELECT s.order_id ,s.id ,s.merchant_pm
+		                              FROM o_supply_order s GROUP BY s.order_id) s) so
+		                                                    ON o.id = so.order_id
+		     LEFT JOIN o_order_finance f                    ON f.order_id = o.id
+		     LEFT JOIN o_supply_product p                   ON so.id = p.supply_order_id
+		     LEFT JOIN o_supply_order_finance sf            ON sf.supply_order_id = so.id
+		     LEFT JOIN t_auth_user u1                       ON u1.user_id = o.merchant_bm
+		     LEFT JOIN t_auth_user u2                       ON u2.user_id = so.merchant_pm
+		WHERE
+                o.company_code = #{companyCode}
+		<choose>
+			<when test="dateQueryType==1">
+				<if test="startDate != null and startDate !=''">
+					AND o.start_date &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.start_date &lt;= #{endDate}
+				</if>
+			</when>
+			<when test="dateQueryType==2">
+				<if test="startDate != null and startDate !=''">
+					AND o.end_date &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.end_date &lt;= #{endDate}
+				</if>
+			</when>
+			<otherwise>
+				<if test="startDate != null and startDate !=''">
+					AND o.created_dt &gt;= #{startDate}
+				</if>
+				<if test="endDate != null and endDate !=''">
+					AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+				</if>
+			</otherwise>
+		</choose>
+
+		<if test="hotelId!=null and hotelId!=''">
+			AND o.hotel_Id = #{hotelId}
+		</if>
+		<if test="orderCode!=null and orderCode!=''">
+			AND o.order_code = #{orderCode}
+		</if>
+		<if test="channelCode!=null and channelCode!=''">
+			AND o.channel_code = #{channelCode}
+		</if>
+		<if test="agentCode!=null and agentCode!=''">
+			AND o.agent_code = #{agentCode}
+		</if>
+		<if test="orderConfirmationStatus!=null and orderConfirmationStatus!=''">
+			AND o.order_confirmation_status =#{orderConfirmationStatus}
+		</if>
+		<if test="purchaseManagerId!=null and purchaseManagerId!=''">
+			AND merchant_bm = #{purchaseManagerId}
+		</if>
+		<if test="orderOwnerName!=null and orderOwnerName!=''">
+			AND o.order_owner_name=#{orderOwnerName}
+		</if>
+		<if test="orderReceivableType !=null and orderReceivableType == 0">
+			AND o.order_amt > 0
+		</if>
+		<if test="orderReceivableType !=null and orderReceivableType == 1" >
+			AND o.order_amt = 0
+		</if>
+		<if test="supplierCode!=null and  supplierCode !=''" >
+			AND s.supplier_code =#{supplierCode}
+		</if>
+		<if test="supplyOrderConfirmationStatus!=null and supplyOrderConfirmationStatus!=''">
+			AND s.confirmation_status =#{supplyOrderConfirmationStatus}
+		</if>
+		<if test="confirmationCode!=null and confirmationCode!=''">
+			AND s.confirmation_code = #{confirmationCode}
+		</if>
+		<if test="saleManagerId!=null and saleManagerId!=''">
+			AND s.merchant_pm = #{saleManagerName}
+		</if>
+		<if test="supplyOrderPayableType !=null and supplyOrderPayableType==0">
+			AND s.supply_order_amt > 0
+		</if>
+		<if test="supplyOrderPayableType !=null and supplyOrderPayableType==1">
+			AND s.supply_order_amt = 0
+		</if>
+	</select>
+
+
+</mapper>

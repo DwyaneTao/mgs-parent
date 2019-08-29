@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.fuzzyquery.mapper.FuzzyQueryMapper">
+    <select id="fuzzyQueryCity" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzyCityDTO">
+        SELECT
+            h.data_code       cityCode,
+            h.data_name       cityName
+        FROM
+            t_baseinfo_areadata h
+        WHERE
+            h.level = 3
+        <if test="null != cityName and cityName != ''">
+            AND h.data_name LIKE "%"#{cityName}"%"
+        </if>
+        order by h.data_name
+    </select>
+
+    <select id="fuzzyQuerySupplier" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzySupplierDTO">
+        SELECT
+            r.org_code              supplierCode,
+            r.org_name              supplierName,
+            s.settlement_currency   settlementCurrency
+        FROM
+        t_org_organization r,
+        t_org_company_supplier s
+        WHERE
+        r.org_id = s.org_id
+        AND s.company_code = #{companyCode}
+        AND s.available_status = 1
+        <if test="null != supplierName and supplierName != ''">
+            AND r.org_name LIKE "%"#{supplierName}"%"
+        </if>
+        <if test="null != hotelId and hotelId != ''">
+            AND exists (select 1 from t_pro_product p,t_pro_sale_status ss
+            where p.product_id = ss.product_id
+            and p.active = 1
+            and ss.active = 1
+            and p.supplier_code = r.org_code
+            and p.hotel_id = #{hotelId}
+            and ss.company_code = #{companyCode})
+        </if>
+        order by r.org_id desc
+    </select>
+
+    <select id="fuzzyQueryAgent" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzyAgentDTO">
+        SELECT
+            r.org_code        agentCode,
+            r.org_name        agentName
+        FROM
+        t_org_organization r,
+        t_org_company_agent a
+        WHERE
+        r.org_id = a.org_id
+        AND a.company_code = #{companyCode}
+        AND a.available_status = 1
+        <if test="null != agentName and agentName != ''">
+            AND r.org_name LIKE "%"#{agentName}"%"
+        </if>
+        <if test="null != agentType and agentType != ''">
+            AND r.org_type = #{agentType}
+        </if>
+        order by r.org_id desc
+    </select>
+
+    <select id="fuzzyQueryHotel" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzyHotelDTO">
+        SELECT
+          h.city_code      cityCode,
+          h.hotel_id       hotelId,
+          h.hotel_name     hotelName,
+        IFNULL(tbhs.sort_rank,1000) sortRank
+        FROM
+        t_baseinfo_hotel h
+        LEFT JOIN t_baseinfo_hotel_sort  tbhs
+        ON  tbhs.hotel_id = h.hotel_id
+        WHERE
+        h.active = 1
+        <if test="null != cityCode and cityCode != ''">
+            AND h.city_code = #{cityCode}
+        </if>
+        <if test="null != hotelName and hotelName != ''">
+            AND h.hotel_name LIKE "%"#{hotelName}"%"
+        </if>
+        ORDER BY sortRank ASC, hotelId DESC
+    </select>
+
+    <select id="fuzzyQueryRoom" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzyRoomDTO">
+        SELECT
+          r.hotel_id         hotelId,
+          r.room_id          roomId,
+          r.room_name        roomName,
+          r.bed_types        bedTypes
+        FROM
+        t_baseinfo_room r
+        WHERE
+        r.hotel_id = #{hotelId}
+        and r.active = 1
+        <if test="null != roomName and roomName != ''">
+            AND r.room_name LIKE "%"#{roomName}"%"
+        </if>
+        order by r.room_id DESC
+    </select>
+
+    <select id="fuzzyQueryProduct" parameterType="com.mgs.fuzzyquery.dto.FuzzyQueryDTO"
+            resultType="com.mgs.fuzzyquery.dto.FuzzyProductDTO">
+        SELECT
+            p.hotel_id         hotelId,
+            p.room_id          roomId,
+            p.product_id       productId,
+            p.product_name     productName
+        FROM
+        t_pro_product p,
+        t_pro_sale_status s
+        WHERE
+        p.product_id = s.product_id
+        AND s.company_code = #{companyCode}
+        and p.hotel_id = #{hotelId}
+        and p.room_id = #{roomId}
+        <if test="null != productName and productName != ''">
+            AND p.product_name LIKE "%"#{productName}"%"
+        </if>
+        <if test="null != supplierCode and supplierCode != ''">
+            AND p.supplier_code = #{supplierCode}
+        </if>
+        AND p.active = 1
+        AND s.active = 1
+    </select>
+
+</mapper>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.OrderFinanceMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.order.domain.OrderFinancePO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="order_id" jdbcType="INTEGER" property="orderId" />
+    <result column="order_code" jdbcType="VARCHAR" property="orderCode" />
+    <result column="received_amt" jdbcType="DECIMAL" property="receivedAmt" />
+    <result column="unreceived_amt" jdbcType="DECIMAL" property="unreceivedAmt" />
+    <result column="unconfirmed_received_amt" jdbcType="DECIMAL" property="unconfirmedReceivedAmt" />
+    <result column="unconfirmed_paid_amt" jdbcType="DECIMAL" property="unconfirmedPaidAmt" />
+    <result column="settlement_status" jdbcType="INTEGER" property="settlementStatus" />
+    <result column="settlement_date" jdbcType="TIMESTAMP" property="settlementDate" />
+    <result column="check_status" jdbcType="INTEGER" property="checkStatus" />
+    <result column="finance_lock_status" jdbcType="INTEGER" property="financeLockStatus" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+  </resultMap>
+
+  <select id="queryOrderAmt" parameterType="com.mgs.order.remote.request.OrderIdListDTO"
+          resultType="com.mgs.order.dto.OrderAmtDTO">
+    SELECT
+      o.id orderId,
+      o.order_code orderCode,
+      o.agent_code agentCode,
+      o.agent_name agentName,
+      f.id orderFinanceId,
+      o.sale_currency currency,
+      o.order_amt orderAmt,
+      f.received_amt receivedAmt,
+      f.unreceived_amt unreceivedAmt,
+      f.unconfirmed_received_amt unconfirmedReceivedAmt,
+      f.unconfirmed_paid_amt unconfirmedPaidAmt
+    FROM o_order o,o_order_finance f
+    WHERE o.id=f.order_id
+    <if test="orderIdList != null and orderIdList.size > 0">
+      AND o.id IN
+      <foreach collection="orderIdList" item="item" open="(" separator="," close=")">#{item}</foreach>
+    </if>
+  </select>
+</mapper>

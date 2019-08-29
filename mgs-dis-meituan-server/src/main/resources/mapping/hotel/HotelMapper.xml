@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.meituan.mapper.HotelMapper">
+    <select id="queryHotelMapper" resultType="com.mgs.meituan.dto.hotel.request.PoiParamDTO">
+        SELECT DISTINCT
+		  tbh.hotel_name pointName,
+	  	  tbh.hotel_id poiId,
+		  tbh.hotel_tel phone,
+		  tbh.hotel_address address,
+		  tbh.longitude longitude,
+		  tbh.latitude latitude,
+		  tmc.meituan_city_id regionType
+		FROM t_baseinfo_hotel tbh
+		LEFT JOIN t_dis_meituan_city tmc ON tbh.city_code = tmc.city_code
+		LEFT JOIN t_pro_product tpp ON  tbh.hotel_id = tpp.hotel_id
+		LEFT JOIN t_pro_sale_status s ON s.product_id = tpp.product_id
+		WHERE s.meituan_sale_status = 1 AND tbh.active = 1 AND tmc.active = 1 AND !ISNULL(tmc.meituan_city_id)
+		ORDER BY tbh.hotel_id
+    </select>
+</mapper>

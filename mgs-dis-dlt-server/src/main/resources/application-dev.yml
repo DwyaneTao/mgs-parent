@@ -1,0 +1,59 @@
+spring:
+  application:
+    name: mgs-dis-dlt-server
+  dataSource:
+      url: jdbc:mysql://39.108.73.131:3306/mgshotel?characterEncoding=UTF-8&allowMultiQueries=true
+      username: mgshotel
+      password: Mgshotel2099!@#$%^
+      driver-class-name: com.mysql.jdbc.Driver
+      type: com.alibaba.druid.pool.DruidDataSource
+      filters: stat
+      maxActive: 20finance
+      initialSize: 1
+      maxWait: 60000
+      minIdle: 1
+      timeBetweenEvictionRunsMillis: 60000
+      minEvictableIdleTimeMillis: 300000
+      validationQuery: select 'x'
+      testWhileIdle: true
+      testOnBorrow: false
+      testOnReturn: false
+      poolPreparedStatements: true
+      maxOpenPreparedStatements: 20
+  main:
+    allow-bean-definition-overriding: true
+  jackson:
+    time-zone: GMT+8
+
+server:
+  port: 8086
+
+
+
+mybatis:
+  mapper-locations: classpath*:/mapping/*Mapper.xml
+  type-aliases-package: com.mgs.*.domain,com.mgs.*.*.domain.*
+
+mapper:
+  mappers: com.mgs.common.MyMapper
+  not-empty: false
+  identity: MYSQL
+
+pagehelper:
+    helperDialect: mysql
+    reasonable: true
+    supportMethodsArguments: true
+    params: count=countSql
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://127.0.0.1:19010/eureka/
+
+#调用feign超时时间
+ribbon:
+  ReadTimeout: 60000
+  ConnectTimeout: 60000
+  ServerListRefreshInterval: 1000
+
+

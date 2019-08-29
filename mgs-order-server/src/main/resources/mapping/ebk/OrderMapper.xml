@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.ebk.mapper.EBKSupplyOrderMapper">
+
+    <select id="queryOrderList" resultType="com.mgs.ebk.order.remote.response.SupplyOrderListDTO"
+            parameterType="com.mgs.ebk.order.remote.request.QuerySupplyOrderListDTO">
+    SELECT
+        s.id                                           orderId,
+        s.supply_order_code                            orderCode,
+        s.created_dt                                   createdDt,
+        s.room_name                                    roomName,
+        s.start_date                                   startDate,
+        s.end_date                                     endDate,
+        o.guest                                        guest,
+        s.room_qty                                     roomQty,
+        s.supply_order_amt                             orderAmt,
+        f.settlement_status                            orderSettlementStatus,
+        e.confirmation_status                          ebkOrderConfirmationStatus,
+        s.confirmation_status                          orderConfirmationStatus,
+        r.supply_order_type                            sendingStatus
+    FROM
+        o_supply_order s
+    LEFT JOIN
+        o_ebk_supply_order e
+    ON
+        s.order_id= e.order_id
+    LEFT JOIN
+               (
+                SELECT
+                      r.supply_order_id,
+                      r.supply_order_type
+                FROM
+                      o_supply_request r
+                 INNER JOIN
+                      ( SELECT MAX( r.id ) id FROM o_supply_request r GROUP BY r.supply_order_id ) rr
+                 ON
+                  r.id = rr.id ) r
+    ON
+           s.id = r.supply_order_id
+    LEFT JOIN
+        o_supply_order_finance f
+    ON
+        s.id = f.supply_order_id
+    LEFT JOIN
+        o_order o
+    ON
+        s.order_id=o.id
+    WHERE
+            (s.sending_status > 0 OR s.confirmation_status =1)
+        <choose>
+            <when test="dateQueryType==1">
+                <if test="startDate != null and startDate !=''">
+                    AND s.start_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND s.start_date &lt;= #{endDate}
+                </if>
+            </when>
+            <when test="dateQueryType==2">
+                <if test="startDate != null and startDate !=''">
+                    AND s.end_date &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND s.end_date &lt;= #{endDate}
+                </if>
+            </when>
+            <otherwise>
+                <if test="startDate != null and startDate !=''">
+                    AND s.created_dt &gt;= #{startDate}
+                </if>
+                <if test="endDate != null and endDate !=''">
+                    AND s.created_dt &lt; date_add(#{endDate},interval 1 day)
+                </if>
+            </otherwise>
+        </choose>
+        <if test="orderCode !=null and orderCode!=''">
+            AND s.supply_order_code=#{orderCode}
+        </if>
+        <if test="guest != null and guest !=''">
+            AND o.guest LIKE concat(concat('%',#{guest}),'%')
+        </if>
+        <if test="startDate != null and startDate !=''">
+            AND o.created_dt &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate !=''">
+            AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+        </if>
+        <if test="confirmationCode != null and confirmationCode !=''">
+            AND o.confirmation_code LIKE concat(concat('%',#{confirmationCode}),'%')
+        </if>
+        <choose>
+            <when test="orderConfirmationStatus==0">
+               AND r.supply_order_type = 0 AND s.confirmation_status = 0
+            </when>
+            <when test="orderConfirmationStatus==1">
+               AND s.confirmation_status=1
+            </when>
+            <when test="orderConfirmationStatus==2">
+               AND s.confirmation_status=2
+            </when>
+            <when test="orderConfirmationStatus==3">
+                AND r.supply_order_type = 2 AND s.confirmation_status = 1
+            </when>
+            <when test="orderConfirmationStatus==4">
+                AND r.supply_order_type = 3 AND s.confirmation_status = 1
+            </when>
+        </choose>
+        <if test="orderSettlementStatus != null">
+            AND f.settlement_status=#{orderSettlementStatus}
+        </if>
+        ORDER BY s.id DESC
+    </select>
+
+
+    <select id="queryOrderDetail" resultType="com.mgs.ebk.order.remote.response.SupplyOrderDetailDTO"
+            parameterType="java.util.Map">
+    SELECT
+        s.id                        supplyOrderId,
+        s.order_id                  orderId,
+        s.supply_order_code         orderCode,
+        s.hotel_name                hotelName,
+        s.product_name              productName,
+        s.start_date                startDate,
+        s.end_date                  endDate,
+        s.room_qty                  roomQty,
+        o.guest                     guest,
+        o.special_request           specialRequest,
+        s.confirmation_code         confirmationCode,
+        s.created_dt                createdDt,
+        s.supply_order_amt          orderAmt,
+        s.base_price                salePrice,
+        s.refund_fee                refundFee,
+        s.settlement_type           settlementType,
+        f.settlement_status         settlementStatus,
+        f.paid_amt                  receivedAmt,
+        f.unpaid_amt                unreceivedAmt
+    FROM
+        o_supply_order s
+    LEFT JOIN
+        o_supply_order_finance f
+    ON
+        s.id = f.supply_order_id
+    LEFT JOIN
+        o_order  o
+    ON
+        s.order_id=o.id
+     WHERE
+           s.supply_order_code=#{orderCode}
+
+    </select>
+
+
+    <select id="queryOrderStatistics" parameterType="java.util.Map" resultType="com.mgs.ebk.order.remote.response.SupplyOrderStatistics">
+         SELECT
+	        SUM( IF ( r.supply_order_type = 0 AND s.confirmation_status = 0, 1, 0 ) )       pendingOrderQty,
+	        SUM( IF ( to_days( s.start_date ) = to_days( now( ) ), 1, 0 ) )                 checkInTodayOrderQty,
+	        SUM( IF ( r.supply_order_type = 2 AND s.confirmation_status = 1, 1, 0 ) )       modifyRequestQty,
+	        SUM( IF ( r.supply_order_type = 3 AND s.confirmation_status = 1, 1, 0 ) )       cancelledRequestQty
+          FROM
+	        o_supply_request r
+	        INNER JOIN
+	            ( SELECT MAX( r.id ) id FROM o_supply_request r GROUP BY r.supply_order_id ) rr
+	         ON
+	             r.id = rr.id
+	        LEFT JOIN
+	             o_supply_order s
+	         ON
+	             s.id = r.supply_order_id
+           WHERE
+	          ( s.sending_status > 0 OR s.confirmation_status = 1 )
+	          AND r.created_dt BETWEEN date_sub( now( ), INTERVAL 3 MONTH )
+	          AND now( )
+    </select>
+
+    <select id="querySupplyOrderRemak" resultType="com.mgs.ebk.domain.EBKSupplyOrderRemarkPO" parameterType="java.util.Map">
+          SELECT
+	          r.remark
+            FROM
+	          o_order_remark r
+           WHERE
+	          r.order_id = #{orderId}
+	        AND
+	          r.remark_type =#{remarkType}
+    </select>
+
+
+</mapper>

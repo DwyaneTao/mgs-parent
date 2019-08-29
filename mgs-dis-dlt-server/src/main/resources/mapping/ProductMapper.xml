@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.dlt.mapper.ProductMapper" >
+
+  <resultMap id="ProductDetailResultMap" type="com.mgs.dlt.response.dto.QueryHotelProductDetailResponse" >
+    <result column="sale_date" property="saleDate" jdbcType="TIMESTAMP" />
+    <result column="base_currency" property="baseCurrency" jdbcType="VARCHAR" />
+    <result column="is_active" property="isActive" jdbcType="INTEGER" />
+    <result column="pay_method" property="payMethod" jdbcType="INTEGER" />
+    <result column="priceplan_id" property="pricePlanId" jdbcType="BIGINT" />
+    <result column="priceplan_name" property="pricePlanName" jdbcType="VARCHAR" />
+    <result column="sale_c_currency" property="saleCCurrency" jdbcType="VARCHAR" />
+    <result column="supply_code" property="supplyCode" jdbcType="VARCHAR" />
+    <result column="sale_state" property="saleState" jdbcType="BIGINT" />
+    <result column="quota_state" property="quotaState" jdbcType="INTEGER" />
+    <result column="quota_num" property="quotaNum" jdbcType="INTEGER" />
+    <result column="overdraft" property="overdraft" jdbcType="INTEGER" />
+    <result column="base_price" property="basePrice" jdbcType="DECIMAL" />
+    <result column="sale_channel_currency" property="saleChannelCurrency" jdbcType="VARCHAR" />
+    <result column="ctrip_price" property="ctripPrice" jdbcType="DECIMAL" />
+    <result column="breakfast_num" property="breakfastNum" jdbcType="VARCHAR" />
+    <result column="adjustmentType" property="adjustmentType" jdbcType="INTEGER" />
+    <result column="modifiedAmt" property="modifiedAmt" jdbcType="DECIMAL" />
+  </resultMap>
+
+    <select id="selectProductDetail" resultMap="ProductDetailResultMap" parameterType="com.mgs.dlt.request.dto.QueryHotelProductDetailRequest" >
+        select priceplan.date_date               sale_date,
+                priceplan.currency                base_currency,
+                priceplan.is_active,
+                priceplan.product_id              priceplan_id,
+                priceplan.product_name            priceplan_name,
+                priceplan.sale_c_currency,
+                priceplan.supplier_code           supply_code,
+                priceplan.sale_state,
+                quota.room_status                 quota_state,
+                quota.remaining_quota             quota_num,
+                quota.overdraft,
+                price.currency                    base_currency,
+                price.base_price,
+                price.sale_channel_currency,
+                price.adjustmentType,
+                price.modifiedAmt,
+                price.breakfast_num
+        from (SELECT
+                    td.sale_date         date_date,
+                    p.currency,
+                    p.active * ss.active is_active,
+                    p.product_id,
+                    p.product_name,
+                    p.supplier_code,
+                    ss.ctrip_sale_status  sale_state,
+                    p.currency sale_c_currency
+        FROM
+            t_pro_product p,
+            t_pro_sale_date td,
+            t_pro_sale_status ss
+        WHERE
+            p.product_id = ss.product_id
+        AND ss.company_code = #{companyCode}
+        and p.product_id = #{pricePlanId,jdbcType=BIGINT}
+        <![CDATA[
+        AND td.sale_date >= #{checkInDate,jdbcType=DATE}
+        AND td.sale_date <= #{checkOutDate,jdbcType=DATE}
+        ]]>
+        ) priceplan
+        left join (SELECT
+                    tq.sale_date,
+                    tq.room_status,
+                    tq.remaining_quota,
+                    tq.over_draft_status overdraft
+        FROM
+            t_pro_product tpp,
+            t_pro_quota tq
+        WHERE
+        tpp.quota_account_id = tq.quota_account_id
+        AND tpp.product_id = #{pricePlanId,jdbcType=BIGINT}
+        <![CDATA[
+        AND tq.sale_date >= #{checkInDate,jdbcType=DATE}
+        AND tq.sale_date < #{checkOutDate,jdbcType=DATE}
+        ]]>
+        ) quota
+        on priceplan.date_date = quota.sale_date
+        left join (SELECT
+                    tp.sale_date,
+                    tp.product_id,
+                    tpp.currency,
+                    tp.base_price,
+                    tpp.currency sale_channel_currency,
+                    <if test="channelCode == 'Ctrip'">
+                        di.ctrip_adjustment_type     adjustmentType,
+                        di.ctrip_modified_amt        modifiedAmt,
+                    </if>
+                    <if test="channelCode == 'Qunar'">
+                        di.qunar_adjustment_type     adjustmentType,
+                        di.qunar_modified_amt        modifiedAmt,
+                    </if>
+                    tpp.breakfast_qty breakfast_num
+        FROM
+            t_pro_price tp,
+            t_pro_product tpp,
+            t_pro_sale_status tss,
+            t_pro_m_channel tms,
+            t_pro_dayincrease di
+        WHERE
+          tp.product_id = #{pricePlanId,jdbcType=BIGINT}
+        AND tp.product_id = tpp.product_id
+        and tp.product_id = tss.product_id
+        and tp.product_id = di.product_id
+        and di.company_code = tss.company_code
+        AND tss.company_code = tms.company_code
+        and tp.sale_date = di.sale_date
+        AND tms.channel_code = #{channelCode,jdbcType=VARCHAR}
+        <![CDATA[
+        AND tp.sale_date >= #{checkInDate,jdbcType=DATE}
+        AND tp.sale_date < #{checkOutDate,jdbcType=DATE}
+        ]]>
+        ) price
+        on priceplan.date_date = price.sale_date
+    </select>
+
+    <select id="queryNeedPushSaleRoomCount" parameterType="java.lang.String" resultType="java.lang.Integer">
+        SELECT
+            count(*)
+        FROM
+            t_dis_dlt_master_room mr,
+            t_pro_product p,
+            t_pro_sale_status ps
+        WHERE
+            mr.company_room_id = p.room_id
+        AND p.active = 1
+        AND p.product_id = ps.product_id
+        AND ps.active = 1
+        AND ps.company_code = #{companyCode}
+        AND ps.ctrip_sale_status = 1
+        AND NOT EXISTS (
+            SELECT
+                1
+            FROM
+                t_dis_mapping_product mp
+            WHERE
+                mp.product_id = p.product_id
+            AND mp.company_code = #{companyCode}
+            AND mp.distributor = 'dlt'
+        )
+    </select>
+
+    <select id="queryNeedPushSaleRoom" parameterType="java.lang.String" resultType="com.mgs.dlt.response.dto.DltNeedPushSaleRoomDTO">
+        SELECT
+            p.hotel_id        hotelId,
+            h.hotel_name      hotelName,
+            p.room_id         roomId,
+            r.room_name       roomName,
+            p.product_id      productId,
+            p.product_name    productName,
+            p.breakfast_qty   breakfastQty
+        FROM
+            t_dis_dlt_master_room mr,
+            t_pro_product p,
+            t_pro_sale_status s,
+            t_baseinfo_hotel h,
+            t_baseinfo_room r
+        WHERE
+            mr.company_room_id = p.room_id
+        AND p.active = 1
+        AND s.active = 1
+        AND p.hotel_id = h.hotel_id
+        AND p.room_id = r.room_id
+        AND p.product_id = s.product_id
+        AND s.company_code = #{companyCode}
+        and s.ctrip_sale_status = 1
+        and not exists (select 1 from t_dis_mapping_product mp
+        where mp.product_id = p.product_id
+        and mp.distributor = 'dlt'
+        and mp.company_code = s.company_code)
+    </select>
+</mapper>

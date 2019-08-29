@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.hotel.mapper.HotelInfoMapper">
+
+    <resultMap id="RoomMap" type="com.mgs.hotel.dto.BasicRoomInfoDTO">
+        <id column="room_id" property="roomId"/>
+        <result column="hotel_id" property="hotelId"/>
+        <result column="room_name" property="roomName"/>
+        <result column="bed_types" property="bedTypes"/>
+        <result column="area" property="area"/>
+        <result column="floor_number" property="floorNumber"/>
+        <result column="room_facilities" property="roomFacilities"/>
+        <result column="room_english_name" property="roomEnglishName"/>
+        <result column="window_available_type" property="windowAvailableType"/>
+        <result column="main_photo_url" property="mainPhotoUrl"/>
+        <result column="max_guest_qty" property="maxGuestQty"/>
+        <result column="network" property="network"/>
+    </resultMap>
+
+    <select id="queryHotelListBySort" parameterType="java.util.Map" resultType="com.mgs.hotel.dto.BasicHotelInfoDTO">
+        SELECT
+          th.hotel_id hotelId,
+          th.hotel_name hotelName,
+          th.country_name countryName,
+          th.city_name cityName,
+          if(ISNULL(a.sort_rank),1000,a.sort_rank) sortRank
+        FROM t_baseinfo_hotel th
+        LEFT JOIN (SELECT * FROM t_baseinfo_hotel_sort ths WHERE ths.org_code = #{orgCode})a ON a.hotel_id = th.hotel_id
+        WHERE th.active = 1
+        <if test="cityCode != null and cityCode != ''">
+          AND th.city_code = #{cityCode}
+        </if>
+        <if test="hotelId != null and hotelId != ''">
+            AND th.hotel_id = #{hotelId}
+        </if>
+        ORDER BY sortRank ASC,th.hotel_id DESC
+    </select>
+
+    <select id="queryHotelList" parameterType="java.util.Map" resultType="com.mgs.hotel.dto.BasicHotelInfoDTO">
+        SELECT
+          t.hotel_id hotelId,
+          t.hotel_name hotelName,
+          t.country_name countryName,
+          t.city_name cityName,
+          t.modified_dt modifiedDt
+        FROM t_baseinfo_hotel t
+        WHERE t.active = 1
+        <if test="cityCode != null and cityCode != ''">
+            AND t.city_code = #{cityCode}
+        </if>
+        <if test="hotelId != null and hotelId != ''">
+            AND t.hotel_id = #{hotelId}
+        </if>
+        ORDER BY t.modified_dt DESC
+    </select>
+
+    <select id="queryLowestPhotoRank" parameterType="com.mgs.hotel.dto.BasicPhotoDTO" resultType="java.lang.Integer">
+        SELECT
+           IFNULL(t.photo_rank,500)
+        FROM t_baseinfo_photo t
+        WHERE t.hotel_id = #{hotelId} AND t.photo_type = #{photoType}
+        <if test="roomId != null">
+           AND t.room_id = #{roomId}
+        </if>
+           AND t.active = 1 ORDER BY t.photo_rank ASC LIMIT 1
+    </select>
+
+    <select id="queryRoomList" parameterType="java.util.Map" resultMap="RoomMap">
+        SELECT
+           t.main_photo_url,
+           t.room_name,
+           t.bed_types,
+           t.network,
+           t.area,
+           t.window_available_type,
+           t.hotel_id,
+           t.room_id,
+           t.floor_number,
+           t.room_facilities,
+           t.room_english_name,
+           t.max_guest_qty
+        FROM t_baseinfo_room t
+        WHERE t.active = 1
+         AND t.hotel_id = #{hotelId} ORDER BY t.room_id DESC
+    </select>
+
+    <select id="queryRoomDetail" parameterType="java.util.Map" resultMap="RoomMap">
+        SELECT
+           t.main_photo_url,
+           t.room_name,
+           t.bed_types,
+           t.network,
+           t.area,
+           t.window_available_type,
+           t.hotel_id,
+           t.room_id,
+           t.floor_number,
+           t.room_facilities,
+           t.room_english_name,
+           t.max_guest_qty
+        FROM t_baseinfo_room t
+        WHERE t.active = 1
+         AND t.room_id = #{roomId}
+    </select>
+
+    <select id="queryHotelDetail" parameterType="java.util.Map" resultType="com.mgs.hotel.dto.BasicHotelInfoDTO">
+        SELECT
+          t.hotel_id hotelId,
+          t.hotel_name hotelName,
+          t.city_code cityCode,
+          t.city_name cityName,
+          t.hotel_tel hotelTel,
+          t.hotel_address hotelAddress,
+          t.country_code countryCode,
+          t.country_name countryName,
+          t.hotel_english_name hotelEnglishName,
+          t.main_photo_url mainPhotoUrl,
+          t.hotel_rank hotelRank,
+          t.hotel_fax hotelFax,
+          t.opening_year openingYear,
+          t.redecorated_year redecoratedYear,
+          t.room_qty roomQty,
+          t.hotel_types hotelTypes,
+          t.hotel_summary hotelSummary,
+          t.longitude longitude,
+          t.latitude latitude,
+          t.check_in_time checkInTime,
+          t.check_out_time checkOutTime,
+          t.pet_policy petPolicy,
+          t.hotel_payment_types hotelPaymentTypes,
+          t.breakfast_policy breakfastPolicy,
+          t.other_policy otherPolicy,
+          t.networks networks,
+          t.parking_lots parkingLots,
+          t.dining_rooms diningRooms,
+          t.entertainments entertainments,
+          t.business_services businessServices,
+          t.children_services childrenServices,
+          t.hotel_services hotelServices
+        FROM t_baseinfo_hotel t
+        WHERE t.active = 1
+          AND t.hotel_id = #{hotelId}
+    </select>
+
+    <select id="queryExistHotelOrExistRoomName" parameterType="com.mgs.hotel.dto.BasicRoomInfoDTO"
+      resultType="com.mgs.hotel.dto.BasicRoomInfoDTO">
+        SELECT
+           th.hotel_id hotelId,
+           tr.room_id roomId
+        FROM t_baseinfo_hotel th ,t_baseinfo_room tr
+        WHERE tr.active = 1 AND tr.room_name = #{roomName} AND tr.hotel_id = #{hotelId}
+    </select>
+
+    <select id="queryExistHotelAndExistRoomId" parameterType="com.mgs.hotel.dto.BasicRoomInfoDTO"
+            resultType="com.mgs.hotel.dto.BasicRoomInfoDTO">
+        SELECT
+           th.hotel_id hotelId
+        FROM t_baseinfo_hotel th, t_baseinfo_room tr
+        WHERE th.active = 1 AND th.hotel_id = #{hotelId}
+          AND tr.active = 1 AND tr.room_id = #{roomId}
+    </select>
+
+    <select id="queryExistProduct" parameterType="java.util.Map"
+            resultType="java.lang.Integer">
+        SELECT
+          p.product_id
+        FROM t_pro_product p,t_pro_sale_status s
+        WHERE p.product_id = s.product_id
+        AND p.active = 1
+        AND s.active = 1
+        <if test="hotelId != null and hotelId != ''">
+            AND p.hotel_id = #{hotelId}
+        </if>
+        <if test="roomId != null and roomId != ''">
+            AND p.room_id = #{roomId}
+        </if>
+    </select>
+
+    <select id="queryHotelPhotoList" parameterType="java.util.Map"
+            resultType="com.mgs.hotel.dto.BasicPhotoDTO">
+        SELECT
+          t.id photoId,
+          t.photo_url photoUrl
+        FROM
+         t_baseinfo_photo t
+        WHERE t.active = 1 AND t.hotel_id = #{hotelId} AND t.photo_type = #{photoType}
+        <if test="roomId != null and roomId != ''">
+           AND t.room_id = #{roomId}
+        </if>
+        ORDER BY t.photo_rank ASC, t.id ASC
+    </select>
+
+    <select id="queryHotelLogList" parameterType="java.util.Map" resultType="com.mgs.hotel.dto.BasicHotelLogDTO">
+        SELECT
+          t.hotel_id hotelId,
+	      t.content content,
+	      t.target target,
+	      t.created_by createdBy,
+	      t.created_dt createdDt
+        FROM t_baseinfo_hotel_log t
+        WHERE t.hotel_id = #{hotelId}
+    </select>
+</mapper>

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.SupplyOrderMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.order.domain.SupplyOrderPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="order_id" jdbcType="INTEGER" property="orderId" />
+    <result column="supply_order_code" jdbcType="VARCHAR" property="supplyOrderCode" />
+    <result column="confirmation_status" jdbcType="INTEGER" property="confirmationStatus" />
+    <result column="sending_status" jdbcType="INTEGER" property="sendingStatus" />
+    <result column="base_currency" jdbcType="INTEGER" property="baseCurrency" />
+    <result column="supply_order_amt" jdbcType="DECIMAL" property="supplyOrderAmt" />
+    <result column="base_price" jdbcType="DECIMAL" property="basePrice" />
+    <result column="supplier_code" jdbcType="VARCHAR" property="supplierCode" />
+    <result column="supplier_name" jdbcType="VARCHAR" property="supplierName" />
+    <result column="supplier_order_code" jdbcType="VARCHAR" property="supplierOrderCode" />
+    <result column="settlement_type" jdbcType="INTEGER" property="settlementType" />
+    <result column="refund_fee" jdbcType="DECIMAL" property="refundFee" />
+    <result column="merchant_pm" jdbcType="VARCHAR" property="merchantPm" />
+    <result column="rate" jdbcType="DECIMAL" property="rate" />
+    <result column="purchase_type" jdbcType="INTEGER" property="purchaseType" />
+    <result column="city_code" jdbcType="VARCHAR" property="cityCode" />
+    <result column="city_name" jdbcType="VARCHAR" property="cityName" />
+    <result column="hotel_id" jdbcType="INTEGER" property="hotelId" />
+    <result column="hotel_name" jdbcType="VARCHAR" property="hotelName" />
+    <result column="room_name" jdbcType="VARCHAR" property="roomName" />
+    <result column="product_name" jdbcType="VARCHAR" property="productName" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="room_qty" jdbcType="INTEGER" property="roomQty" />
+    <result column="bed_type" jdbcType="VARCHAR" property="bedType" />
+    <result column="breakfast_qty" jdbcType="INTEGER" property="breakfastQty" />
+    <result column="confirmation_code" jdbcType="VARCHAR" property="confirmationCode" />
+    <result column="supplier_confirmer" jdbcType="VARCHAR" property="supplierConfirmer" />
+    <result column="refused_reason" jdbcType="VARCHAR" property="refusedReason" />
+    <result column="confirmation_remark" jdbcType="VARCHAR" property="confirmationRemark" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+
+  <select id="queryOnTimeSupplyOrderList" parameterType="com.mgs.order.remote.request.QueryOnTimeSupplyOrderListDTO"
+          resultType="com.mgs.order.remote.response.OnTimeSupplyOrderDTO">
+    SELECT
+    so.id supplyOrderId,
+    so.supply_order_code supplyOrderCode,
+    so.supplier_name supplierName,
+    so.supplier_code supplierCode,
+    so.supply_order_amt payableAmt,
+    sf.paid_amt paidAmt,
+    sf.unpaid_amt unpaidAmt,
+    sf.unconfirmed_received_amt unconfirmedReceivedAmt,
+    sf.unconfirmed_paid_amt unconfirmedPaidAmt,
+    sf.settlement_date settlementDate,
+    if(ISNULL(sf.real_settlement_date), if(DATEDIFF(CURDATE(),sf.settlement_date)&gt;0,DATEDIFF(CURDATE(),sf.settlement_date),0), if(DATEDIFF(sf.real_settlement_date,sf.settlement_date)&gt;0,DATEDIFF(sf.real_settlement_date,sf.settlement_date),0)) overdueDays,
+    sf.settlement_status settlementStatus,
+    so.base_currency baseCurrency
+    FROM
+    o_order o,o_supply_order so,o_supply_order_finance sf
+    WHERE o.id=so.order_id AND so.id=sf.supply_order_id
+    AND o.company_code=#{companyCode}
+    AND so.settlement_type=3
+    and so.confirmation_status > 0
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND so.supplier_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          and so.supplier_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="startDate != null and startDate !=''">
+      AND sf.settlement_date &gt;= #{startDate}
+    </if>
+    <if test="endDate != null and endDate !=''">
+      AND sf.settlement_date &lt;= #{endDate}
+    </if>
+    <if test="supplyOrderCode != null and supplyOrderCode !=''">
+      AND so.supply_order_code LIKE concat(concat('%',#{supplyOrderCode}),'%')
+    </if>
+    <if test="settlementStatus !=null and settlementStatus != ''">
+      AND sf.settlement_status = #{settlementStatus}
+    </if>
+    <if test="overdueStatus !=null and overdueStatus != ''">
+      <if test="overdueStatus == 0">
+        AND DATEDIFF(CURDATE(),sf.settlement_date)&lt;=0
+      </if>
+      <if test="overdueStatus == 1">
+        AND DATEDIFF(CURDATE(),sf.settlement_date)>0
+      </if>
+    </if>
+    AND  sf.paid_amt != 0
+    ORDER BY o.id DESC
+  </select>
+</mapper>

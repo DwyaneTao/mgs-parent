@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductDayIncreaseMapper" >
+    <update id="batchModifyDayIncrease" parameterType="java.util.List">
+        update t_pro_dayincrease
+        <trim prefix="set" suffixOverrides=",">
+            b2b_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                    and company_code = #{item.companyCode}
+                    and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.b2bAdjustmentType">
+                        #{item.b2bAdjustmentType}
+                    </when>
+                    <otherwise>b2b_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            b2b_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.b2bModifiedAmt">
+                        #{item.b2bModifiedAmt}
+                    </when>
+                    <otherwise>b2b_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            b2c_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.b2cAdjustmentType">
+                        #{item.b2cAdjustmentType}
+                    </when>
+                    <otherwise>b2c_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            b2c_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.b2cModifiedAmt">
+                        #{item.b2cModifiedAmt}
+                    </when>
+                    <otherwise>b2c_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            ctrip_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.ctripAdjustmentType">
+                        #{item.ctripAdjustmentType}
+                    </when>
+                    <otherwise>ctrip_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            ctrip_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.ctripModifiedAmt">
+                        #{item.ctripModifiedAmt}
+                    </when>
+                    <otherwise>ctrip_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            meituan_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.meituanAdjustmentType">
+                        #{item.meituanAdjustmentType}
+                    </when>
+                    <otherwise>meituan_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            meituan_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.meituanModifiedAmt">
+                        #{item.meituanModifiedAmt}
+                    </when>
+                    <otherwise>meituan_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            feizhu_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.feizhuAdjustmentType">
+                        #{item.feizhuAdjustmentType}
+                    </when>
+                    <otherwise>feizhu_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            feizhu_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.feizhuModifiedAmt">
+                        #{item.feizhuModifiedAmt}
+                    </when>
+                    <otherwise>feizhu_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            tcyl_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.tcylAdjustmentType">
+                        #{item.tcylAdjustmentType}
+                    </when>
+                    <otherwise>tcyl_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            tcyl_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.tcylModifiedAmt">
+                        #{item.tcylModifiedAmt}
+                    </when>
+                    <otherwise>tcyl_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            qunar_adjustment_type =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.qunarAdjustmentType">
+                        #{item.qunarAdjustmentType}
+                    </when>
+                    <otherwise>qunar_adjustment_type</otherwise>
+                </choose>
+            </foreach>
+            qunar_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.qunarModifiedAmt">
+                        #{item.qunarModifiedAmt}
+                    </when>
+                    <otherwise>qunar_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            qunar_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.qunarModifiedAmt">
+                        #{item.qunarModifiedAmt}
+                    </when>
+                    <otherwise>qunar_modified_amt</otherwise>
+                </choose>
+            </foreach>
+            qunar_modified_amt =
+            <foreach collection="list" item="item" open="case " close=" end,">
+                when product_id = #{item.productId}
+                and company_code = #{item.companyCode}
+                and sale_date = #{item.saleDate}
+                then
+                <choose>
+                    <when test="null != item.qunarModifiedAmt">
+                        #{item.qunarModifiedAmt}
+                    </when>
+                    <otherwise>qunar_modified_amt</otherwise>
+                </choose>
+            </foreach>
+        </trim>
+        where
+        <foreach collection="list" item="item" open="( " separator=") or (" close=" )">
+            product_id = #{item.productId}
+            and company_code = #{item.companyCode}
+            and sale_date = #{item.saleDate}
+        </foreach>
+    </update>
+
+    <insert id="mergeProductDayIncrease" parameterType="java.util.List">
+        insert into t_pro_dayincrease(
+            product_id,
+            company_code,
+            sale_date,
+            b2b_adjustment_type,
+            b2b_modified_amt,
+            ctrip_adjustment_type,
+            ctrip_modified_amt,
+            meituan_adjustment_type,
+            meituan_modified_amt,
+            feizhu_adjustment_type,
+            feizhu_modified_amt,
+            tcyl_adjustment_type,
+            tcyl_modified_amt,
+            b2c_adjustment_type,
+            b2c_modified_amt,
+            qunar_adjustment_type,
+            qunar_modified_amt,
+            created_by,
+            created_dt,
+            modified_by,
+            modified_dt
+        )VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (
+                #{item.productId},
+                #{item.companyCode},
+                #{item.saleDate},
+                #{item.b2bAdjustmentType},
+                #{item.b2bModifiedAmt},
+                #{item.ctripAdjustmentType},
+                #{item.ctripModifiedAmt},
+                #{item.meituanAdjustmentType},
+                #{item.meituanModifiedAmt},
+                #{item.feizhuAdjustmentType},
+                #{item.feizhuModifiedAmt},
+                #{item.tcylAdjustmentType},
+                #{item.tcylModifiedAmt},
+                #{item.b2cAdjustmentType},
+                #{item.b2cModifiedAmt},
+                #{item.qunarAdjustmentType},
+                #{item.qunarModifiedAmt},
+                #{item.modifiedBy},
+                now(),
+                #{item.modifiedBy},
+                now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            b2b_adjustment_type = VALUES(b2b_adjustment_type),
+            b2b_modified_amt = VALUES(b2b_modified_amt),
+            ctrip_adjustment_type = VALUES(ctrip_adjustment_type),
+            ctrip_modified_amt = VALUES(ctrip_modified_amt),
+            meituan_adjustment_type = VALUES(meituan_adjustment_type),
+            meituan_modified_amt = VALUES(meituan_modified_amt),
+            feizhu_adjustment_type = VALUES(feizhu_adjustment_type),
+            feizhu_modified_amt = VALUES(feizhu_modified_amt),
+            tcyl_adjustment_type = VALUES(tcyl_adjustment_type),
+            tcyl_modified_amt = VALUES(tcyl_modified_amt),
+            b2c_adjustment_type = VALUES(b2c_adjustment_type),
+            b2c_modified_amt = VALUES(b2c_modified_amt),
+            qunar_adjustment_type = VALUES(qunar_adjustment_type),
+            qunar_modified_amt = VALUES(qunar_modified_amt),
+            modified_by = VALUES(modified_by),
+            modified_dt = now()
+    </insert>
+</mapper>

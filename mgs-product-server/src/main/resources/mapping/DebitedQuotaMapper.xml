@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.DebitedQuotaMapper">
+
+    <insert id="insertDebitedQuota" parameterType="java.util.List">
+      INSERT INTO
+         t_pro_debited_quota
+       (
+         product_id,
+         quota_account_id,
+         order_id,
+         order_code,
+         supply_order_id,
+         supply_order_code,
+         sale_date,
+         quota,
+         type,
+         created_by,
+         created_dt
+            )
+      VALUES
+
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.productId},#{item.quotaAccountId},#{item.orderId},#{item.orderCode},
+            #{item.supplyOrderId},#{item.supplyOrderCode},#{item.saleDate},#{item.quota},
+            #{item.type},#{item.createdBy},#{item.createdDt})
+        </foreach>
+
+
+    </insert>
+
+
+    <select id="queryDebitedQuota"  resultType="com.mgs.product.domain.DebitedQuotaPO"  parameterType="java.util.Map">
+      SELECT
+        product_id  productId,
+        quota_account_id quotaAccountId,
+        order_id   orderId,
+        order_code  orderCode,
+        supply_order_id  supplyOrderId,
+        supply_order_code  supplyOrderCode,
+        quota quota ,
+        sale_date saleDate,
+        type  type
+      FROM
+	    t_pro_debited_quota d
+      WHERE
+	    d.product_id = #{productId}
+	  AND
+	    d.order_id = #{orderId}
+	  AND
+	    d.type = #{type}
+
+
+    </select>
+
+
+</mapper>

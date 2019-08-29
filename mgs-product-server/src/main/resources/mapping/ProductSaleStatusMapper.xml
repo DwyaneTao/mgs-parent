@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductSaleStatusMapper" >
+    <insert id="batchModifyProductSaleStatus" parameterType="java.util.List">
+        insert into t_pro_sale_status(
+            product_id,
+            company_code,
+            b2b_sale_status,
+            b2c_sale_status,
+            ctrip_sale_status,
+            meituan_sale_status,
+            feizhu_sale_status,
+            tcyl_sale_status,
+            qunar_sale_status,
+            created_by,
+            created_dt,
+            modified_by,
+            modified_dt
+        )VALUES
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.productId},
+            #{item.companyCode},
+            <choose>
+                <when test="null != item.b2bSaleStatus">
+                    #{item.b2bSaleStatus},
+                </when>
+                <otherwise>b2b_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.b2cSaleStatus">
+                    #{item.b2cSaleStatus},
+                </when>
+                <otherwise>b2c_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.ctripSaleStatus">
+                    #{item.ctripSaleStatus},
+                </when>
+                <otherwise>ctrip_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.meituanSaleStatus">
+                    #{item.meituanSaleStatus},
+                </when>
+                <otherwise>meituan_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.feizhuSaleStatus">
+                    #{item.feizhuSaleStatus},
+                </when>
+                <otherwise>feizhu_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.tcylSaleStatus">
+                    #{item.tcylSaleStatus},
+                </when>
+                <otherwise>tcyl_sale_status,</otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.qunarSaleStatus">
+                    #{item.qunarSaleStatus},
+                </when>
+                <otherwise>qunar_sale_status,</otherwise>
+            </choose>
+            #{item.modifiedBy},
+            now(),
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            b2b_sale_status = VALUES(b2b_sale_status),
+            b2c_sale_status = VALUES(b2c_sale_status),
+            ctrip_sale_status = VALUES(ctrip_sale_status),
+            meituan_sale_status = VALUES(meituan_sale_status),
+            feizhu_sale_status = VALUES(feizhu_sale_status),
+            tcyl_sale_status = VALUES(tcyl_sale_status),
+            qunar_sale_status = VALUES(qunar_sale_status),
+            modified_by = VALUES(modified_by),
+            modified_dt = now()
+    </insert>
+</mapper>

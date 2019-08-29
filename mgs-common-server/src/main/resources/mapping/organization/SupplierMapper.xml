@@ -1,0 +1,374 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.organization.mapper.OrgMapper">
+    <!--根据机构编码查询对应的总管理员用户Id-->
+<select id="getUserId" resultType="java.lang.Integer">
+select  user_id from  t_auth_user where  org_code =#{companyCode} AND t_auth_user.is_super_admin = 1
+</select>
+    <!--根据机构Id查询对应的供应商运营商Id-->
+    <select id="getSupplierCompany" resultType="java.lang.Integer">
+select  s_company_id from  t_org_company_supplier where  org_id =#{supplierId}
+</select>
+    <!--根据机构Id查询对应的客户运营商Id
+    -->
+    <select id="getAgentCompany" resultType="java.lang.Integer">
+select  a_company_id from  t_org_company_agent where  org_id =#{agentId}
+</select>
+<!--根据供应商code,查询供应商详情-->
+    <select id="SupplierList" resultMap="SupplierList">
+              SELECT
+     too.org_id,
+     too.org_type,
+     too.org_name,
+     too.org_code,
+     tocs.user_name,
+     tocs.user_number,
+     tocs.user_tel,
+     tocs.settlement_type,
+     tocs.settlement_currency,
+     tau.user_id AS purchase_manager_id,
+     tau.user_name AS purchase_manager_name
+     FROM t_org_organization too
+     INNER JOIN t_org_company_supplier tocs
+     ON  tocs.org_id = too.org_id
+     INNER JOIN t_auth_user tau
+     ON tau.user_id = tocs.purchase_manager_id
+     where too.org_code = #{orgCode}
+    </select>
+    <resultMap id="SupplierList" type="com.mgs.organization.remote.dto.SupplierSelectDTO">
+        <result column="org_id" property="supplierId"/>
+        <result column="org_type" property="supplierType"/>
+        <result column="org_name" property="supplierName"/>
+        <result column="org_code" property="supplierCode"/>
+        <result column="user_name" property="adminName"/>
+        <result column="user_number" property="adminAccount"/>
+        <result column="user_tel" property="adminTel"/>
+        <result column="settlement_type" property="settlementType"/>
+        <result column="settlement_currency" property="settlementCurrency"/>
+        <result column="purchase_manager_id" property="purchaseManagerId"/>
+        <result column="purchase_manager_name" property="purchaseManager"/>
+    </resultMap>
+    <select id="ConcactList" resultMap="ConcactList">
+        SELECT
+        contact_id,
+        contact_name,
+        contact_tel,
+        contact_role,
+        contact_email,
+        contact_remark
+        FROM t_org_contact toc
+        WHERE toc.org_code = #{orgCode}
+        AND active = #{active}
+        ORDER BY contact_id DESC
+    </select>
+    <resultMap id="ConcactList" type="com.mgs.organization.remote.dto.ContactSupplierDTO">
+        <result column="contact_id" property="contactId"/>
+        <result column="contact_name" property="contactName"/>
+        <result column="contact_tel" property="contactTel"/>
+        <result column="contact_role" property="contactRole"/>
+        <result column="contact_email" property="contactEmail"/>
+        <result column="contact_remark" property="contactRemark"/>
+    </resultMap>
+
+    <select id="BankList" resultMap="BankList">
+    SELECT
+    bank_id,
+    bank_name,
+    account_name,
+    account_number,
+    bank_code
+    FROM t_org_bank tob
+    WHERE tob.org_code = #{orgCode}
+    AND active = #{active}
+    ORDER BY bank_id DESC
+    </select>
+    <resultMap id="BankList" type="com.mgs.organization.remote.dto.BankSupplierDTO">
+        <result column="bank_id" property="bankId"/>
+        <result column="bank_name" property="bankName"/>
+        <result column="bank_code" property="bankCode"/>
+        <result column="account_name" property="accountName"/>
+        <result column="account_number" property="accountNumber"/>
+    </resultMap>
+<select id="AgentList" resultMap="AgentList">
+     SELECT
+     too.org_id,
+     too.org_type,
+     too.org_name,
+     too.org_code,
+     too.org_tel,
+     toca.user_name,
+     toca.user_number,
+     toca.user_tel,
+     toca.settlement_type,
+     toca.credit_line,
+     toca.balance,
+     tau.user_id AS sale_manager_id,
+     tau.user_name AS sale_manager_name
+     FROM t_org_company_agent toca
+     INNER JOIN t_org_organization too
+     ON  too.org_id = toca.org_id
+     INNER JOIN t_auth_user tau
+     ON tau.user_id = toca.sale_manager_id
+     WHERE too.org_code=#{orgCode}
+</select>
+<resultMap id="AgentList" type="com.mgs.organization.remote.dto.AgentSelectDTO">
+    <result column="org_id" property="agentId"/>
+    <result column="org_type" property="agentType"/>
+    <result column="org_name" property="agentName"/>
+    <result column="org_code" property="agentCode"/>
+    <result column="org_tel" property="agentTel"/>
+    <result column="user_name" property="adminName"/>
+    <result column="user_number" property="adminAccount"/>
+    <result column="user_tel" property="adminTel"/>
+    <result column="settlement_type" property="settlementType"/>
+    <result column="credit_line" property="creditLine"/>
+    <result column="sale_manager_id" property="saleManagerId"/>
+    <result column="sale_manager_name" property="saleManager"/>
+    <result column="balance" property="Balance"/>
+</resultMap>
+    <select id="companyList" resultMap="companyList">
+        SELECT
+        too.org_id,
+        too.org_name,
+        too.org_code,
+        too.org_domian,
+        tau.user_name,
+        tau.user_account,
+        tau.user_tel,
+        too.org_tel,
+        too.org_address,
+        too.org_summary,
+        too.created_dt
+        FROM t_org_organization too
+        INNER JOIN t_auth_user tau
+        ON too.org_code = tau.org_code
+        WHERE too.org_code=#{orgCode}
+        and tau.is_super_admin = 1
+
+    </select>
+    <resultMap id="companyList" type="com.mgs.organization.remote.dto.CompanySelectDTO">
+        <result column="org_id" property="companyId"/>
+        <result column="org_name" property="companyName"/>
+        <result column="org_code" property="companyCode"/>
+        <result column="org_domian" property="companyDomain"/>
+        <result column="user_name" property="adminName"/>
+        <result column="user_account" property="adminAccount"/>
+        <result column="user_tel" property="adminTel"/>
+        <result column="org_tel" property="companyTel"/>
+        <result column="org_address" property="companyAddress"/>
+        <result column="org_summary" property="companySummary"/>
+        <result column="created_dt" property="createdDt"/>
+    </resultMap>
+   <update id="updateAdminStatus" parameterType="com.mgs.organization.domain.UserPO">
+      UPDATE
+      t_auth_user
+      SET
+      t_auth_user.available_status = #{userPO.availableStatus},
+      t_auth_user.modified_by = #{userPO.modifiedBy},
+      t_auth_user.modified_dt = NOW()
+      WHERE t_auth_user.org_code =#{userPO.orgCode} and t_auth_user.is_super_admin = 1
+   </update>
+    <!--按条件查询供应商列表-->
+    <select id="querySupplierList" resultMap="querySupplierList">
+        SELECT
+        too.org_id,
+        too.org_type,
+        too.org_name,
+        too.org_code,
+        too.available_status,
+        tocs.user_tel,
+        tocs.settlement_currency,
+        tocs.purchase_manager_id,
+        tau.user_name AS purchase_manager_name
+        FROM t_org_organization too
+        INNER JOIN t_org_company_supplier tocs
+        ON tocs.org_id = too.org_id
+        INNER JOIN t_auth_user tau
+        ON tau.user_id = tocs.purchase_manager_id
+        where type = 0  and
+        tocs.company_code = #{request.companyCode}
+
+            <if test="request.availableStatus != null and request.availableStatus != '' or request.availableStatus==0 " >
+                AND too.available_status = #{request.availableStatus}
+            </if>
+            <if  test="request.supplierCode != null and request.supplierCode != ''">
+                AND too.org_code =#{request.supplierCode}
+            </if>
+            <if test="request.purchaseManagerId != null and request.purchaseManagerId != ''" >
+                AND tocs.purchase_manager_id  = #{request.purchaseManagerId}
+            </if>
+        ORDER BY too.org_id DESC
+    </select>
+    <resultMap id="querySupplierList" type="com.mgs.organization.remote.dto.QuerySupplierListDTO">
+         <result column="org_id" property="supplierId"/>
+         <result column="org_type" property="supplierType"/>
+         <result column="org_name" property="supplierName"/>
+         <result column="org_code" property="supplierCode"/>
+         <result column="available_status" property="availableStatus"/>
+         <result column="user_tel" property="adminTel"/>
+         <result column="settlement_currency" property="settlementCurrency"/>
+         <result column="purchase_manager_id" property="purchaseManagerId"/>
+         <result column="purchase_manager_name" property="purchaseManager"/>
+    </resultMap>
+
+    <select id="queryAgentList" resultMap="queryAgentList">
+        SELECT
+        too.org_id,
+        too.org_type,
+        too.org_name,
+        too.org_code,
+        too.org_tel,
+        tau.user_name AS sale_manager_name,
+        toca.user_tel,
+        toca.balance,
+        too.available_status
+        FROM t_org_company_agent toca
+        INNER JOIN t_org_organization too
+        ON  too.org_id = toca.org_id
+        INNER JOIN t_auth_user tau
+        ON tau.user_id = toca.sale_manager_id
+        WHERE type  = 1 and toca.company_code =#{request.companyCode}
+        <if test="request.availableStatus != null and request.availableStatus != '' or request.availableStatus==0 " >
+            AND too.available_status = #{request.availableStatus}
+        </if>
+        <if  test="request.agentType != null and request.agentType != '' or request.agentType==0 ">
+            AND too.org_type = #{request.agentType}
+        </if>
+        <if test="request.agentName != null and request.agentName != ''" >
+            AND too.org_name LIKE concat(concat('%',#{request.agentName}),'%')
+        </if>
+        <if test="request.agentCode != null and request.agentCode != ''" >
+            AND too.org_code LIKE concat(concat('%',#{request.agentCode}),'%')
+        </if>
+        <if test="request.saleManagerId != null" >
+            AND  toca.sale_manager_id  = #{request.saleManagerId}
+        </if>
+        ORDER BY too.org_id DESC
+    </select>
+    <resultMap id="queryAgentList" type="com.mgs.organization.remote.dto.QueryAgentListDTO">
+        <result column="org_id" property="agentId"/>
+        <result column="org_type" property="agentType"/>
+        <result column="org_name" property="agentName"/>
+        <result column="org_code" property="agentCode"/>
+        <result column="org_tel" property="agentTel"/>
+        <result column="user_tel" property="adminTel"/>
+        <result column="sale_manager_name" property="saleManager"/>
+        <result column="available_status" property="availableStatus"/>
+        <result column="balance" property="balance"/>
+    </resultMap>
+    <select id="queryCompanyList" resultMap="queryCompanyList">
+
+ SELECT
+        too.org_id,
+        too.org_name,
+        too.org_code,
+        tau.user_name,
+        tau.user_tel,
+        too.available_status
+        FROM t_org_organization too
+        INNER JOIN t_auth_user tau
+        ON too.org_code = tau.org_code
+        WHERE too.type = 2 and tau.is_super_admin = 1
+        <if test="request.companyCode != null and request.companyCode != ''" >
+            AND  too.org_code = #{request.companyCode}
+        </if>
+        ORDER BY  too.org_id DESC
+    </select>
+    <resultMap id="queryCompanyList" type="com.mgs.organization.remote.dto.QueryCompanyListDTO">
+        <result column="org_id" property="companyId"/>
+        <result column="org_name" property="companyName"/>
+        <result column="org_code" property="companyCode"/>
+        <result column="user_name" property="adminName"/>
+        <result column="user_tel" property="adminTel"/>
+        <result column="available_status" property="availableStatus"/>
+    </resultMap>
+
+    <update id="updateContactRole">
+    UPDATE
+    t_org_contact
+    SET contact_role = #{contactRole}
+    WHERE org_code = #{orgCode}
+    AND contact_role = #{role}
+    </update>
+
+    <update id="updateSupplierStatus" parameterType="com.mgs.organization.domain.SupplierCompanyPO">
+        UPDATE
+        t_org_company_supplier
+        SET
+        available_status=#{supplierCompanyPO.availableStatus},
+        modified_by=#{supplierCompanyPO.modifiedBy},
+        modified_dt=#{supplierCompanyPO.modifiedDt}
+        WHERE org_id =#{supplierCompanyPO.orgId}
+    </update>
+
+    <update id="updateAgentStatus" parameterType="com.mgs.organization.domain.AgentCompanyPO">
+        UPDATE
+        t_org_company_agent
+        SET
+        available_status=#{agentCompanyPO.availableStatus},
+        modified_by=#{agentCompanyPO.modifiedBy},
+        modified_dt=#{agentCompanyPO.modifiedDt}
+        WHERE org_id =#{agentCompanyPO.orgId}
+    </update>
+
+
+    <select id="getDomian" resultMap="companyList">
+        SELECT * FROM
+        t_org_organization
+        WHERE  org_domian =#{orgDomian}
+    </select>
+    <select id="getCompanyName" resultType="java.lang.String" parameterType="com.mgs.organization.remote.dto.ExamineOrgNameDTO">
+        SELECT
+        too.org_name
+        FROM
+        t_org_organization too
+        WHERE  org_name =#{examineOrgNameDTO.orgName}
+        AND  too.type = #{examineOrgNameDTO.type}
+    </select>
+    <select id="getSupplierName" resultType="java.lang.String" parameterType="com.mgs.organization.remote.dto.ExamineOrgNameDTO">
+       SELECT
+        too.org_name
+        FROM
+        t_org_organization too
+        LEFT JOIN
+        t_org_company_supplier tos
+        ON
+        too.org_id = tos.org_id
+        WHERE  org_name =#{examineOrgNameDTO.orgName}
+        AND  too.type = #{examineOrgNameDTO.type}
+        AND tos.company_code =#{examineOrgNameDTO.companyCode}
+    </select>
+    <select id="getAgentName" resultType="java.lang.String">
+        SELECT
+        too.org_name
+        FROM
+        t_org_organization too
+        LEFT JOIN
+        t_org_company_agent toa
+        ON
+        too.org_id = toa.org_id
+        WHERE  org_name =#{examineOrgNameDTO.orgName}
+        AND
+        too.type = #{examineOrgNameDTO.type}
+        AND toa.company_code =#{examineOrgNameDTO.companyCode}
+    </select>
+    <select id="getAgentCreditLine" resultMap="getAgentCreditLine">
+       SELECT
+       *
+       FROM t_org_agent_credit_line
+       where agent_code = #{agentCode}
+    </select>
+    <resultMap id="getAgentCreditLine" type="com.mgs.organization.remote.dto.AgentCreditLineDTO">
+    <result column="agent_credit_line_id" property="agentCreditLineId"/>
+    <result column="agent_code"  property="agentCode"/>
+    <result column="order_code" property="orderCode"/>
+    <result column="d_r_credit_line" property="deductRefundCreditLine"/>
+    </resultMap>
+    <update id="updateBalance">
+        UPDATE
+        t_org_company_agent
+        SET
+        t_org_company_agent.balance = #{Balance}
+        WHERE t_org_company_agent.org_id = #{agentId}
+    </update>
+    </mapper>

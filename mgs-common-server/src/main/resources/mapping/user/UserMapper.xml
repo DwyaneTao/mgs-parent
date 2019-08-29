@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.user.mapper.UserMapper">
+
+    <resultMap id="ExistAdminUser" type="com.mgs.organization.domain.UserPO">
+        <id column="user_id" property="userId"/>
+    </resultMap>
+
+    <resultMap id="PurchaseManager" type="com.mgs.user.dto.PurchaseManagerDTO">
+        <id column="user_id" property="purchaseManagerId"/>
+        <result column="user_name" property="purchaseManagerName"/>
+    </resultMap>
+
+    <resultMap id="SaleManager" type="com.mgs.user.dto.SaleManagerDTO">
+        <id column="user_id" property="saleManagerId"/>
+        <result column="user_name" property="saleManagerName"/>
+    </resultMap>
+
+    <resultMap id="RoleAndDomain" type="com.mgs.user.dto.RoleAndDomainDTO">
+        <result column="org_domian" property="domainName"/>
+        <collection property="employeeRoleList" ofType="com.mgs.user.dto.RoleDTO">
+            <id column="role_id" property="employeeRoleId"/>
+            <result column="role_name" property="employeeRoleName"/>
+            <result column="role_description" property="employeeRoleDescription"/>
+        </collection>
+    </resultMap>
+
+    <select id="queryExistAdminUser" resultMap="ExistAdminUser"
+      parameterType="com.mgs.organization.domain.UserPO">
+        SELECT
+          t.user_id
+        FROM t_auth_user t
+        WHERE
+          t.active = 1
+          AND ((t.is_super_admin = #{isSuperAdmin} AND t.org_code = #{orgCode})
+              OR t.user_account = #{userAccount})
+    </select>
+
+    <select id="queryPurchaseManagerList" resultMap="PurchaseManager"
+      parameterType="java.util.Map">
+        SELECT
+		  u.user_id,
+		  u.user_name
+		FROM t_auth_role t
+		LEFT JOIN t_auth_user_role ur ON t.role_id = ur.role_id
+		LEFT JOIN t_auth_user u ON ur.user_id = u.user_id
+		WHERE t.role_name ='采购经理' AND u.active = 1
+           AND u.org_code = #{orgCode}
+		<if test="purchaseManagerName != null and purchaseManagerName != ''">
+		   AND u.user_name LIKE "%"#{purchaseManagerName}"%"
+        </if>
+    </select>
+
+    <select id="getSaleManagerList" resultMap="SaleManager"
+        parameterType="java.util.Map">
+        SELECT
+		  u.user_id,
+		  u.user_name
+		FROM t_auth_role t
+		LEFT JOIN t_auth_user_role ur ON t.role_id = ur.role_id
+		LEFT JOIN t_auth_user u ON ur.user_id = u.user_id
+		WHERE t.role_name ='销售经理' AND u.active = 1
+		   AND u.org_code = #{orgCode}
+        <if test="saleManagerName != null and saleManagerName != ''">
+           AND u.user_name LIKE "%"#{saleManagerName}"%"
+        </if>
+    </select>
+
+    <select id="getRoleAndDomain" resultMap="RoleAndDomain"
+       parameterType="java.util.Map">
+        SELECT
+          t.role_id,
+          t.role_name,
+          t.role_description,
+          too.org_domian
+        FROM t_auth_role t, t_org_organization too
+        WHERE t.active = 1 AND t.type = #{endType}
+          AND too.org_code = #{orgCode}
+    </select>
+
+    <select id="getEmployeeList" resultType="com.mgs.user.dto.EmployeeUserDTO"
+       parameterType="java.util.Map">
+        SELECT
+          u.user_id employeeId,
+		  u.user_name employeeName,
+		  u.user_account employeeAccount,
+		  u.user_tel employeeTel,
+		  if(u.user_account = #{user} OR u.is_super_admin = 1 OR u.available_status = 0,0,1) availableStatus,
+		  if(u.user_account = #{user} OR u.is_super_admin = 1,0,1) deletableStatus,
+		  if(ISNULL(u.is_super_admin),0 ,u.is_super_admin) isSuperAdmin
+        FROM t_auth_user u
+        WHERE u.active = 1 AND u.org_code = #{orgCode}
+        <if test="employeeName != null and employeeName != ''">
+            AND u.user_name LIKE CONCAT('%',#{employeeName},'%')
+        </if>
+        ORDER BY isSuperAdmin DESC, u.user_id DESC
+    </select>
+
+    <select id="getRoleList" resultType="com.mgs.user.dto.RoleDTO">
+        SELECT
+          ur.id userRoleId,
+          r.role_id employeeRoleId,
+          r.role_name employeeRoleName,
+          ur.user_id employeeId
+        FROM t_auth_user_role ur
+        LEFT JOIN t_auth_role r ON ur.role_id = r.role_id
+        WHERE ur.user_id IN
+        <foreach collection="list" item="item" index="index" separator="," open="(" close=")">
+          #{item.employeeId}
+        </foreach>
+    </select>
+
+    <select id="getRoleListByUserId" resultType="com.mgs.user.dto.RoleDTO">
+        SELECT
+           ur.id userRoleId,
+           ur.role_id employeeRoleId,
+           ur.user_id employeeId
+        FROM t_auth_user_role ur
+        LEFT JOIN t_auth_role r ON r.role_id = ur.role_id
+        WHERE ur.user_id in
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.userId}
+        </foreach>
+    </select>
+
+    <select id="deleteUserRole">
+        DELETE
+        FROM t_auth_user_role
+        WHERE id IN
+        <foreach collection="list" item="item" index="index" open="(" close=")" separator=",">
+            #{item.id}
+        </foreach>
+    </select>
+
+    <select id="getUserWithoutAdmin" resultType="com.mgs.organization.domain.UserPO">
+        SELECT
+          t.user_id userId,
+          t.user_name userName,
+          t.user_account userAccount
+        FROM t_auth_user t
+        WHERE t.active = 1 AND ISNULL(t.is_super_admin)
+            AND t.user_id = #{userId}
+    </select>
+
+    <select id="queryEmployeeDetail" resultType="com.mgs.user.dto.EmployeeUserDTO">
+        SELECT
+          u.user_id employeeId,
+		  u.user_name employeeName,
+		  u.user_account employeeAccount,
+		  u.user_tel employeeTel,
+		  if(u.user_account = #{user} OR u.is_super_admin = 1,0,1) resetable,
+		  if(u.user_account = #{user} OR u.is_super_admin = 1,0,1) modifiable
+        FROM t_auth_user u
+        WHERE u.active = 1 AND u.user_id = #{employeeId}
+    </select>
+
+    <select id="queryMenuListByLoginName" resultType="com.mgs.user.dto.MenuDTO" parameterType="java.util.Map">
+        SELECT DISTINCT
+         m.id menuId,
+         m.menu_code menuCode,
+         m.menu_name menuName,
+         m.menu_level menuLevel,
+         m.menu_rank menuRank,
+         m.parent_code parentCode,
+         m.front_end_url frontEndUrl,
+         m.back_end_url backEndUrl,
+         m.open_type openType
+        FROM
+         t_auth_user u,
+         t_auth_user_role ur,
+         t_auth_role r,
+         t_auth_role_menu rm,
+         t_auth_menu m
+        WHERE
+         m.id = rm.menu_id
+        AND rm.role_id = r.role_id
+        AND u.user_id = ur.user_id
+        AND ur.role_id = r.role_id
+        AND u.active = 1
+        AND m.active = 1
+        AND r.active = 1
+        <if test = "userAccount != null and userAccount != ''">
+            AND u.user_account = #{userAccount}
+        </if>
+    </select>
+
+    <select id="queryLoginUser" parameterType="java.lang.String" resultType="com.mgs.user.dto.UserDTO">
+        SELECT
+          u.user_id loginId,
+          u.user_account loginAccount,
+          u.user_name loginName,
+          u.user_pwd loginPwd,
+          u.salt salt,
+          o.org_name companyName,
+          o.org_code companyCode,
+          o.org_domian companyDomain,
+          o.hotel_info_permissions hotelPermissions,
+          u.available_status       availableStatus
+        FROM t_auth_user u
+        LEFT JOIN t_org_organization o ON o.org_code = u.org_code
+        WHERE u.user_account = #{userAccount} AND u.active = 1 AND o.type = 2
+    </select>
+
+</mapper>

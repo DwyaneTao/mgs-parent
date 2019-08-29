@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.statement.mapper.AgentStatementMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.finance.statement.domain.AgentStatementPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="statement_code" jdbcType="VARCHAR" property="statementCode" />
+    <result column="statement_name" jdbcType="VARCHAR" property="statementName" />
+    <result column="statement_status" jdbcType="INTEGER" property="statementStatus" />
+    <result column="agent_code" jdbcType="VARCHAR" property="agentCode" />
+    <result column="agent_name" jdbcType="VARCHAR" property="agentName" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="currency" jdbcType="INTEGER" property="currency" />
+    <result column="statement_amt" jdbcType="DECIMAL" property="statementAmt" />
+    <result column="received_amt" jdbcType="DECIMAL" property="receivedAmt" />
+    <result column="unreceived_amt" jdbcType="DECIMAL" property="unreceivedAmt" />
+    <result column="unconfirmed_received_amt" jdbcType="DECIMAL" property="unconfirmedReceivedAmt" />
+    <result column="unconfirmed_paid_amt" jdbcType="DECIMAL" property="unconfirmedPaidAmt" />
+    <result column="settlement_status" jdbcType="INTEGER" property="settlementStatus" />
+    <result column="settlement_date" jdbcType="DATE" property="settlementDate" />
+    <result column="company_code" jdbcType="VARCHAR" property="companyCode" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+
+  <select id="queryStatementList" parameterType="com.mgs.finance.remote.statement.request.QueryAgentStatementListDTO"
+          resultType="com.mgs.finance.remote.statement.response.AgentStatementListResponseDTO">
+    SELECT
+      s.id statementId,
+      s.statement_code statementCode,
+      s.agent_name agentName,
+      s.statement_name statementName,
+      s.statement_amt receivableAmt,
+      s.received_amt receivedAmt,
+      s.unreceived_amt unreceivedAmt,
+      s.currency currency,
+      s.statement_status statementStatus,
+      s.settlement_date settlementDate,
+      if(ISNULL(s.real_settlement_date), if(DATEDIFF(CURDATE(),s.settlement_date)>0,DATEDIFF(CURDATE(),s.settlement_date),0), if(DATEDIFF(s.real_settlement_date ,s.settlement_date)>0,DATEDIFF(s.real_settlement_date,s.settlement_date),0)) overdueDays,
+      settlement_status settlementStatus
+    FROM f_agent_statement s
+    WHERE s.company_code=#{companyCode}
+    <choose>
+      <when test="agentCode!=null and agentCode!=''">
+        AND s.agent_code=#{agentCode}
+      </when>
+      <otherwise>
+        <if test="agentName != null and agentName != ''">
+          and s.agent_name LIKE concat(concat('%',#{agentName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="startDate!=null and startDate!=''">
+      AND s.settlement_date >= #{startDate}
+    </if>
+    <if test="endDate!=null and endDate!=''">
+      AND s.settlement_date &lt;= #{endDate}
+    </if>
+    <if test="statementCode!=null and statementCode!=''">
+      AND s.statement_code LIKE "%"#{statementCode}"%"
+    </if>
+    <if test="statementStatus!=null and statementStatus != ''">
+      AND s.statement_status = #{statementStatus}
+    </if>
+    <if test="settlementStatus !=null and settlementStatus != ''">
+      AND s.settlement_status = #{settlementStatus}
+    </if>
+    <if test="overdueStatus !=null and overdueStatus != ''">
+      <if test="overdueStatus == 0">
+        AND DATEDIFF(CURDATE(),s.settlement_date)&lt;=0
+      </if>
+      <if test="overdueStatus == 1">
+        AND DATEDIFF(CURDATE(),s.settlement_date)>0
+      </if>
+    </if>
+    AND (s.received_amt != 0 OR s.statement_amt != 0)
+    ORDER BY s.id DESC
+  </select>
+
+  <select id="queryUncheckOutAgentList" parameterType="com.mgs.finance.remote.statement.request.QueryUncheckOutAgentListDTO"
+          resultType="com.mgs.finance.remote.statement.response.UncheckOutAgentDTO">
+      SELECT
+        o.agent_code agentCode,
+        oo.org_name agentName,
+		o.sale_currency currency,
+        sum(o.order_amt - f.received_amt) receivableAmt,
+        count(1) orderQty
+      FROM o_order o INNER JOIN o_order_finance f ON o.id = f.order_id INNER JOIN
+			t_org_organization oo on o.agent_code=oo.org_code
+      WHERE o.company_code=#{companyCode}
+        AND o.settlement_type!=3
+        AND o.order_confirmation_status IN (1,2)
+        AND f.check_status=1
+        AND o.order_amt - f.received_amt!=0
+    <choose>
+      <when test="dateQueryType==0">
+        <if test="startDate!=null and startDate!=''">
+          AND o.created_dt >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+        </if>
+      </when>
+      <when test="dateQueryType==1">
+        <if test="startDate!=null and startDate!=''">
+          AND o.start_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.start_date &lt;= #{endDate}
+        </if>
+      </when>
+      <when test="dateQueryType==2">
+        <if test="startDate!=null and startDate!=''">
+          AND o.end_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.end_date &lt;= #{endDate}
+        </if>
+      </when>
+    </choose>
+    <choose>
+      <when test="agentCode!=null and agentCode!=''">
+        AND o.agent_code=#{agentCode}
+      </when>
+      <otherwise>
+        <if test="agentName != null and agentName != ''">
+          AND oo.org_name LIKE concat(concat('%',#{agentName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+	  GROUP BY o.agent_code,oo.org_name HAVING count(1)>0
+      ORDER BY receivableAmt DESC
+  </select>
+</mapper>

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductPriceMapper" >
+    <insert id="batchModifyBasePrice" parameterType="java.util.List">
+        insert into t_pro_price (
+            product_id,
+            sale_date,
+            base_price,
+            created_by,
+            modified_by,
+            created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.productId},
+            #{item.saleDate},
+            #{item.basePrice},
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+          base_price = VALUES(base_price),
+          modified_by = VALUES(modified_by),
+          modified_dt = now()
+    </insert>
+
+
+    <insert id="batchModifyBasePriceAdd" parameterType="java.util.List">
+        insert into t_pro_price (
+        product_id,
+        sale_date,
+        base_price,
+        created_by,
+        modified_by,
+        created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.productId},
+            #{item.saleDate},
+            #{item.modifiedBasePrice},
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        base_price = ifnull(base_price,0) + VALUES(base_price),
+        modified_by = VALUES(modified_by),
+        modified_dt = now()
+    </insert>
+
+    <insert id="batchModifyBasePriceSubtract" parameterType="java.util.List">
+        insert into t_pro_price (
+        product_id,
+        sale_date,
+        base_price,
+        modified_base_price,
+        created_by,
+        modified_by,
+        created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.productId},
+            #{item.saleDate},
+            0,
+            #{item.modifiedBasePrice},
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        base_price = if(ifnull(base_price,0) + VALUES(modified_base_price) > 0,ifnull(base_price,0) + VALUES(modified_base_price),0),
+        modified_by = VALUES(modified_by),
+        modified_dt = now()
+
+    </insert>
+
+    <insert id="batchModifyBasePriceEquals" parameterType="java.util.List">
+        insert into t_pro_price (
+        product_id,
+        sale_date,
+        base_price,
+        created_by,
+        modified_by,
+        created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.productId},
+            #{item.saleDate},
+            #{item.modifiedBasePrice},
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        base_price = VALUES(base_price),
+        modified_by = VALUES(modified_by),
+        modified_dt = now()
+    </insert>
+</mapper>

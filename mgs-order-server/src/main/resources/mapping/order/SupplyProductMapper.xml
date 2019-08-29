@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.SupplyProductMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.order.domain.SupplyProductPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="supply_order_id" jdbcType="INTEGER" property="supplyOrderId" />
+    <result column="order_id" jdbcType="INTEGER" property="orderId" />
+    <result column="room_id" jdbcType="INTEGER" property="roomId" />
+    <result column="room_name" jdbcType="VARCHAR" property="roomName" />
+    <result column="product_id" jdbcType="INTEGER" property="productId" />
+    <result column="product_name" jdbcType="VARCHAR" property="productName" />
+    <result column="purchase_type" jdbcType="INTEGER" property="purchaseType" />
+    <result column="bed_type" jdbcType="VARCHAR" property="bedType" />
+    <result column="breakfast_qty" jdbcType="INTEGER" property="breakfastQty" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="room_qty" jdbcType="INTEGER" property="roomQty" />
+    <result column="guest" jdbcType="VARCHAR" property="guest" />
+    <result column="sale_price_total_amt" jdbcType="DECIMAL" property="salePriceTotalAmt" />
+    <result column="base_price_total_amt" jdbcType="DECIMAL" property="basePriceTotalAmt" />
+    <result column="quota_account_id" jdbcType="INTEGER" property="quotaAccountId" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+</mapper>

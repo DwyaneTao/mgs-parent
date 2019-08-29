@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.ProductQuotaMapper" >
+    <insert id="batchModifyQuotaAdd" parameterType="java.util.List">
+        insert into t_pro_quota (
+            quota_account_id,
+            sale_date,
+            quota,
+            remaining_quota,
+            room_status,
+            over_draft_status,
+            created_by,
+            modified_by,
+            created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.quotaAccountId},
+            #{item.saleDate},
+            #{item.modifiedQuota},
+            #{item.modifiedQuota},
+            <choose>
+                <when test="null != item.roomStatus and item.roomStatus != '' or item.roomStatus == 0">
+                    #{item.roomStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.overDraftStatus and item.overDraftStatus != '' or item.overDraftStatus == 0">
+                    #{item.overDraftStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            quota = ifnull(quota,0) + VALUES(quota),
+            remaining_quota = ifnull(remaining_quota,0) + VALUES(quota),
+            room_status = ifnull(VALUES(room_status),room_status),
+            over_draft_status = ifnull(VALUES(over_draft_status),over_draft_status),
+            modified_by = VALUES(modified_by),
+            modified_dt = now()
+    </insert>
+
+    <insert id="batchModifyQuotaSubtract" parameterType="java.util.List">
+        insert into t_pro_quota (
+        quota_account_id,
+        sale_date,
+        quota,
+        remaining_quota,
+        modified_quota,
+        room_status,
+        over_draft_status,
+        created_by,
+        modified_by,
+        created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.quotaAccountId},
+            #{item.saleDate},
+            0,
+            0,
+            #{item.modifiedQuota},
+            <choose>
+                <when test="null != item.roomStatus and item.roomStatus != '' or item.roomStatus == 0">
+                    #{item.roomStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.overDraftStatus and item.overDraftStatus != '' or item.overDraftStatus == 0">
+                    #{item.overDraftStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        quota = if(ifnull(quota,0) + VALUES(modified_quota) > 0,ifnull(quota,0) + VALUES(modified_quota),0),
+        remaining_quota = if(ifnull(remaining_quota,0) + VALUES(modified_quota) > 0,ifnull(remaining_quota,0) + VALUES(modified_quota),0),
+        room_status = ifnull(VALUES(room_status),room_status),
+        over_draft_status = ifnull(VALUES(over_draft_status),over_draft_status),
+        modified_by = VALUES(modified_by),
+        modified_dt = now()
+    </insert>
+
+    <insert id="batchModifyQuotaEquals" parameterType="java.util.List">
+        insert into t_pro_quota (
+        quota_account_id,
+        sale_date,
+        quota,
+        remaining_quota,
+        room_status,
+        over_draft_status,
+        created_by,
+        modified_by,
+        created_dt
+        )values
+        <foreach collection ="list" item="item" index= "index" separator =",">
+            (
+            #{item.quotaAccountId},
+            #{item.saleDate},
+            #{item.modifiedQuota},
+            #{item.modifiedQuota},
+            <choose>
+                <when test="null != item.roomStatus and item.roomStatus != '' or item.roomStatus == 0">
+                    #{item.roomStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="null != item.overDraftStatus and item.overDraftStatus != '' or item.overDraftStatus == 0">
+                    #{item.overDraftStatus},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            #{item.modifiedBy},
+            #{item.modifiedBy},
+            now()
+            )
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+        quota = VALUES(quota),
+        remaining_quota = VALUES(quota),
+        room_status = ifnull(VALUES(room_status),room_status),
+        over_draft_status = ifnull(VALUES(over_draft_status),over_draft_status),
+        modified_by = VALUES(modified_by),
+        modified_dt = now()
+    </insert>
+
+    <update id="updateQuotaLessThanZero" parameterType="java.util.List">
+        UPDATE t_pro_quota
+        SET quota = 0,modified_by = 'system',modified_dt = now()
+        WHERE
+        quota_account_id IN
+        <foreach collection="list" separator="," index="index" item="item" open="(" close=")">
+            #{item}
+        </foreach>
+        AND sale_date >= date(now())
+        AND quota &lt; 0
+
+    </update>
+
+    <update id="updateRemainingQuotaLessThanZero" parameterType="java.util.List">
+        UPDATE t_pro_quota
+        SET remaining_quota = 0,modified_by = 'system',modified_dt = now()
+        WHERE
+        quota_account_id IN
+        <foreach collection="list" separator="," index="index" item="item" open="(" close=")">
+            #{item}
+        </foreach>
+        AND sale_date >= date(now())
+        AND remaining_quota &lt; 0
+
+    </update>
+</mapper>

@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.mgs.product.mapper.RoomCharterMapper">
+<select id="queryRoomCharterList" parameterType="com.mgs.product.dto.RoomCharterQueryQuestDTO" resultType="com.mgs.product.dto.RoomCharterQueryDTO">
+    SELECT
+    frc.room_charter_id roomCharterId,
+    frc.room_charter_code roomCharterCode,
+    frc.room_charter_name roomCharterName,
+    too.org_name supplierName,
+    tbh.hotel_name hotelName,
+    frc.night_qty nightQty,
+    frc.contract_amt contractAmt,
+    frc.paid_amt paidAmt,
+    frc.start_date startDate,
+    frc.end_date endDate,
+    DATEDIFF(frc.end_date,frc.start_date) AS remainingDays
+    FROM
+    f_room_charter frc
+    LEFT JOIN
+    t_org_organization too
+    ON
+    too.org_code = frc.supplier_code
+    LEFT JOIN
+    t_baseinfo_hotel tbh
+    ON
+    tbh.hotel_id = frc.hotel_id
+    WHERE  frc.company_code = #{request.companyCode}
+    <if test="request.remainingNightQty != null" >
+        AND frc.remaining_night_qty &lt; #{request.remainingNightQty}
+    </if>
+    <if test='request.overdueStatus != null and request.overdueStatus != "" and request.overdueStatus=="0"'>
+        AND DATEDIFF(frc.end_date,frc.start_date) =0
+    </if>
+    <if test='request.overdueStatus != null and request.overdueStatus != "" and request.overdueStatus=="1"' >
+        AND DATEDIFF(frc.end_date,frc.start_date) >0
+    </if>
+    <if test="request.roomCharterName != null and request.roomCharterName != ''" >
+        AND frc.room_charter_name LIKE concat(concat('%',#{request.roomCharterName}),'%')
+    </if>
+    <if test="request.supplierCode != null and request.supplierCode != ''" >
+        AND too.org_code = #{request.supplierCode}
+    </if>
+    <if test="request.hotelId != null" >
+        AND frc.hotel_id = #{request.hotelId}
+    </if>
+    <if test="request.remainingDays != null" >
+        AND DATEDIFF(frc.end_date,frc.start_date) &lt; #{request.remainingDays}
+    </if>
+</select>
+
+    <select id="queryRoomCharterDetail" parameterType="com.mgs.product.dto.RoomCharterQueryQuestDTO" resultType="com.mgs.product.dto.QueryRoomCharterDetailDTO">
+    SELECT
+    frc.room_charter_code roomCharterCode,
+    frc.room_charter_name roomCharterName,
+    too.org_name supplierName,
+    tbh.hotel_name hotelName,
+    frc.contract_amt contractAmt,
+    frc.paid_amt paidAmt,
+    frc.spent_amt spentAmt,
+    frc.balance balance,
+    frc.remark remark,
+    frc.night_qty nightQty,
+    frc.start_date startDate,
+    frc.end_date endDate,
+    DATEDIFF(frc.end_date,frc.start_date) AS remainingDays
+    FROM
+    f_room_charter frc
+    LEFT JOIN
+    t_org_organization too
+    ON
+    too.org_code = frc.supplier_code
+    LEFT JOIN
+    t_baseinfo_hotel tbh
+    ON
+    tbh.hotel_id = frc.hotel_id
+    WHERE  frc.room_charter_code = #{roomCharterCode}
+    </select>
+    <select id="getSoldNightQty" resultType="java.lang.Integer">
+        select count(TIMESTAMPDIFF(DAY, osp.start_date, osp.end_date)* osp.room_qty) AS nightQty
+        FROM o_supply_product osp
+        INNER JOIN t_pro_product tpp
+        ON
+        tpp.product_id = osp.product_id
+        INNER JOIN f_room_charter frc
+        ON tpp.advance_payment_id = room_charter_id
+        INNER JOIN o_supply_order oso
+        ON
+        oso.order_id = osp.order_id
+        WHERE frc.room_charter_id = #{roomCharterCode}
+        AND oso.confirmation_status = 1
+        AND tpp.purchase_type = 1
+     </select>
+
+
+    <!-- 查询酒店产品-->
+    <select id="queryHotelProducts" parameterType="com.mgs.product.dto.QueryProductRequestDTO" resultType="com.mgs.product.dto.ProductTempDTO">
+        select
+        products.hotel_id                   hotelId,
+        products.hotel_name                 hotelName,
+        products.room_id                    roomId,
+        products.room_name                  roomName,
+        products.product_id                 productId,
+        products.product_name               productName,
+        products.advance_payment_id         advancePaymentId,
+        products.breakfast_qty              breakfastQty,
+        products.supplier_code              supplierCode,
+        products.org_name                   supplierName,
+        products.roomBedTypes               roomBedTypes,
+        products.b2b_sale_status            b2bSaleStatus,
+        products.b2c_sale_status            b2cSaleStatus,
+        products.ctrip_sale_status          ctripSaleStatus,
+        products.feizhu_sale_status         feizhuSaleStatus,
+        products.qunar_sale_status          qunarSaleStatus,
+        products.tcyl_sale_status           tcylSaleStatus,
+        products.meituan_sale_status        meituanSaleStatus,
+        products.bed_types                  bedTypes,
+        products.purchase_type              purchaseType,
+        products.currency                   currency,
+        quotations.sale_date                saleDate,
+        quotations.base_price               basePrice,
+        quotations.over_draft_status        overDraftStatus,
+        quotations.quota                    quota,
+        quotations.remaining_quota          remainingQuota,
+        quotations.room_status              roomStatus,
+        soldQuota.soldQuota                 soldQuota
+        from
+        (SELECT
+        h.hotel_id,
+        h.hotel_name,
+        r.room_id,
+        r.room_name,
+        r.bed_types              roomBedTypes,
+        p.product_id,
+        p.product_name,
+        p.advance_payment_id,
+        p.breakfast_qty,
+        p.supplier_code,
+        p.bed_types,
+        p.purchase_type,
+        p.currency,
+        o.org_name,
+        ps.b2b_sale_status,
+        ps.b2c_sale_status,
+        ps.ctrip_sale_status,
+        ps.feizhu_sale_status,
+        ps.qunar_sale_status,
+        ps.tcyl_sale_status,
+        ps.meituan_sale_status
+        FROM
+        t_baseinfo_hotel h,
+        t_baseinfo_room r,
+        t_pro_product p,
+        t_pro_sale_status ps,
+        t_org_company_supplier cs,
+        t_org_organization o
+        where h.hotel_id = p.hotel_id
+        and r.room_id = p.room_id
+        and p.product_id = ps.product_id
+        and o.org_code = p.supplier_code
+        and cs.company_code = ps.company_code
+        and cs.org_id = o.org_id
+        and cs.available_status = 1
+        and ps.company_code = #{companyCode}
+        and p.hotel_id = #{hotelId}
+        <if test="null != supplierCode and supplierCode != '' ">
+            and p.supplier_code = #{supplierCode}
+        </if>
+        <if test="null != purchaseType and purchaseType != '' ">
+            and p.purchase_type = #{purchaseType}
+        </if>
+        and ps.active = 1) products
+        left join
+        (SELECT
+        saledate.product_id,
+        saledate.sale_date,
+        price.base_price,
+        quota.over_draft_status,
+        quota.quota,
+        quota.remaining_quota,
+        quota.room_status
+        FROM
+        (
+        SELECT
+        sd.sale_date,
+        p.product_id
+        FROM
+        t_pro_sale_date sd,
+        t_pro_product p
+        WHERE
+        sd.sale_date &gt;= #{startDate}
+        AND sd.sale_date &lt;= #{endDate}
+        AND p.hotel_id = #{hotelId}
+        AND p.active = 1
+        ) saledate
+        LEFT JOIN (
+        SELECT
+        p.product_id,
+        pi.sale_date,
+        pi.base_price
+        FROM
+        t_pro_product p,
+        t_pro_price pi
+        WHERE
+        p.product_id = pi.product_id
+        AND p.hotel_id = #{hotelId}
+        AND pi.sale_date &gt;= #{startDate}
+        AND pi.sale_date &lt;= #{endDate}
+        ) price ON saledate.sale_date = price.sale_date
+        AND saledate.product_id = price.product_id
+        LEFT JOIN (
+        SELECT
+        p.product_id,
+        q.over_draft_status,
+        q.quota,
+        q.remaining_quota,
+        q.room_status,
+        q.sale_date
+        FROM
+        t_pro_product p,
+        t_pro_quota q
+        WHERE
+        p.quota_account_id = q.quota_account_id
+        AND p.hotel_id = #{hotelId}
+        AND q.sale_date &gt;= #{startDate}
+        AND q.sale_date &lt;= #{endDate}
+        ) quota ON saledate.sale_date = quota.sale_date
+        AND saledate.product_id = quota.product_id
+        ) quotations on products.product_id = quotations.product_id
+        LEFT JOIN(
+        SELECT
+        COUNT(quota) soldQuota,
+        p.product_id,
+        tpdq.sale_date
+        from
+        t_pro_debited_quota tpdq,
+        t_pro_product p
+        WHERE type = 1
+        AND p.product_id = tpdq.product_id
+        AND tpdq.sale_date &gt;= #{startDate}
+        AND tpdq.sale_date &lt;= #{endDate}
+        GROUP BY sale_date)soldQuota
+        ON quotations.sale_date =  soldQuota.sale_date
+        AND soldQuota.product_id = quotations.product_id
+    </select>
+</mapper>

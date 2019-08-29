@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.order.mapper.SupplyProductPriceMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.order.domain.SupplyProductPricePO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="supply_product_id" jdbcType="INTEGER" property="supplyProductId" />
+    <result column="supply_order_id" jdbcType="INTEGER" property="supplyOrderId" />
+    <result column="sale_date" jdbcType="DATE" property="saleDate" />
+    <result column="sale_price" jdbcType="DECIMAL" property="salePrice" />
+    <result column="base_price" jdbcType="DECIMAL" property="basePrice" />
+    <result column="debucted_quota" jdbcType="INTEGER" property="debuctedQuota" />
+  </resultMap>
+
+  <select id="querySupplyOrderPriceList" parameterType="java.lang.Integer"
+          resultType="com.mgs.order.remote.response.PriceResponseDTO">
+    SELECT
+        sp.sale_date saleDate,
+        SUM(sp.base_price) basePrice
+    FROM o_supply_product_price sp
+    WHERE sp.supply_order_id=#{supplyOrderId}
+    GROUP BY sp.sale_date
+    ORDER BY sp.sale_date
+  </select>
+</mapper>

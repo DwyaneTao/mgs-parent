@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.dis.mapper.InitMapper">
+
+   <resultMap id="BasePriceAndRoomStatusMap" type="com.mgs.dis.dto.ProductBasePriceAndRoomStatusDTO">
+      <result column="product_id" property="productId" />
+      <result column="redisKey" property="redisKey" />
+      <result column="sale_date" property="saleDate"/>
+      <result column="base_price" property="basePrice"/>
+      <result column="room_status" property="roomStatus"/>
+      <result column="over_draft_status" property="overDraftStatus"/>
+      <result column="quota" property="quota"/>
+      <result column="remaining_quota" property="remainingQuota"/>
+   </resultMap>
+
+
+   <resultMap id="SalePriceMap" type="com.mgs.dis.dto.ProductSaleIncreaseDTO">
+      <result column="product_id" property="productId"/>
+      <result column="company_code" property="companyCode"/>
+      <result column="redisKey" property="redisKey"/>
+      <result column="sale_date" property="saleDate"/>
+      <result column="b2b_adjustment_type" property="b2bAdjustmentType"/>
+      <result column="b2b_modified_amt" property="b2bModifiedAmt"/>
+      <result column="ctrip_adjustment_type" property="ctripAdjustmentType"/>
+      <result column="ctrip_modified_amt" property="ctripModifiedAmt"/>
+      <result column="meituan_adjustment_type" property="meituanAdjustmentType"/>
+      <result column="meituan_modified_amt" property="meituanModifiedAmt"/>
+      <result column="feizhu_adjustment_type" property="feizhuAdjustmentType"/>
+      <result column="feizhu_modified_amt" property="feizhuModifiedAmt"/>
+      <result column="tcyl_adjustment_type" property="tcylAdjustmentType"/>
+      <result column="tcyl_modified_amt" property="tcylModifiedAmt"/>
+      <result column="b2c_adjustment_type" property="b2cAdjustmentType"/>
+      <result column="b2c_modified_amt" property="b2cModifiedAmt"/>
+      <result column="qunar_adjustment_type" property="qunarAdjustmentType"/>
+      <result column="qunar_modified_amt" property="qunarModifiedAmt"/>
+    </resultMap>
+
+    <resultMap id="ProductCompanyRelationMap" type="com.mgs.dis.dto.ProductCompanyRelationDTO">
+        <result column="product_id" property="productId" />
+        <collection property="companySaleStatusList" javaType="java.util.List" ofType="com.mgs.dis.dto.CompanySaleStatusDTO">
+            <result column="company_code" property="companyCode"/>
+            <result column="active" property="active"/>
+            <result column="b2b_sale_status" property="b2bSaleStatus"/>
+            <result column="b2c_sale_status" property="b2cSaleStatus"/>
+            <result column="ctrip_sale_status" property="ctripSaleStatus"/>
+            <result column="meituan_sale_status" property="meituanSaleStatus"/>
+            <result column="feizhu_sale_status" property="feizhuSaleStatus"/>
+            <result column="tcyl_sale_status" property="tcylSaleStatus"/>
+            <result column="qunar_sale_status" property="qunarSaleStatus"/>
+        </collection>
+    </resultMap>
+
+   <select id="queryBasePriceAndRoomStatusList" resultMap="BasePriceAndRoomStatusMap">
+       SELECT
+        a.product_id,
+        a.sale_date,
+        tpp.base_price,
+        tpq.room_status,
+        tpq.over_draft_status,
+        tpq.quota,
+        tpq.remaining_quota,
+        CONCAT(a.product_id, "_", a.sale_date) redisKey
+       FROM
+        (SELECT
+          tpp.product_id,
+          tpp.quota_account_id,
+          tpsd.sale_date
+         FROM
+          t_pro_product tpp,t_pro_sale_date tpsd
+         WHERE
+          tpsd.sale_date >= DATE_FORMAT(NOW(), "%Y-%m-%d") AND tpsd.sale_date &lt;= DATE_ADD(NOW(), INTERVAL 100 DAY))a
+       LEFT JOIN t_pro_price tpp ON tpp.product_id = a.product_id AND a.sale_date = tpp.sale_date
+       LEFT JOIN t_pro_quota tpq ON tpq.quota_account_id = a.quota_account_id AND a.sale_date = tpq.sale_date
+       ORDER BY a.product_id, a.sale_date
+   </select>
+
+   <select id="querySalePriceList" resultMap="SalePriceMap">
+      SELECT
+        t.product_id,
+        t.company_code,
+        CONCAT(t.company_code, "_", t.product_id, "_", DATE_FORMAT(t.sale_date, "%Y-%m-%d")) redisKey,
+        t.sale_date,
+        t.b2b_adjustment_type,
+        t.b2b_modified_amt,
+        t.ctrip_adjustment_type,
+        t.ctrip_modified_amt,
+        t.meituan_adjustment_type,
+        t.meituan_modified_amt,
+        t.feizhu_adjustment_type,
+        t.feizhu_modified_amt,
+        t.tcyl_adjustment_type,
+        t.tcyl_modified_amt,
+        t.b2c_adjustment_type,
+        t.b2c_modified_amt,
+        t.qunar_adjustment_type,
+        t.qunar_modified_amt
+      FROM t_pro_dayincrease t
+      WHERE t.sale_date >= DATE_FORMAT(NOW(), "%Y-%m-%d") AND t.sale_date &lt;= DATE_ADD(NOW(), INTERVAL 100 DAY)
+   </select>
+
+   <select id="querySaleStatusList" resultType="com.mgs.dis.dto.ProductSaleStatusDTO">
+      SELECT
+        t.product_id productId,
+        t.company_code companyCode,
+        t.active active,
+        CONCAT(t.company_code, "_", t.product_id) redisKey,
+        t.b2b_sale_status b2bSaleStatus,
+        t.b2c_sale_status b2cSaleStatus,
+        t.ctrip_sale_status ctripSaleStatus,
+        t.meituan_sale_status meituanSaleStatus,
+        t.feizhu_sale_status feizhuSaleStatus,
+        t.tcyl_sale_status tcylSaleStatus,
+        t.qunar_sale_status qunarSaleStatus
+      FROM t_pro_sale_status t
+      LEFT JOIN t_pro_product p ON p.product_id = t.product_id
+      WHERE t.active = 1 AND p.active = 1
+   </select>
+
+   <select id="queryRestrictList" resultType="com.mgs.dis.dto.ProductRestrictDTO">
+       SELECT
+          t.product_id productId,
+          t.cancellation_type cancellationType,
+          t.cancellation_advance_days cancellationAdvanceDays,
+          t.cancellation_due_time cancellationDueTime,
+          t.cancellation_deduction_term cancellationDeductionTerm,
+          t.comparison_type comparisonType,
+          t.reservation_limit_nights reservationLimitNights,
+          t.reservation_advance_days reservationAdvanceDays,
+          t.reservation_due_time reservationDueTime,
+          t.reservation_limit_rooms reservationLimitRooms,
+          p.breakfast_qty breakfastQty
+       FROM t_pro_restrict t
+       LEFT JOIN t_pro_product p ON p.product_id = t.product_id
+       WHERE p.active = 1
+   </select>
+
+
+    <select id="queryProductCompanyRelationList" resultMap="ProductCompanyRelationMap">
+      SELECT
+        t.product_id,
+        t.company_code,
+        t.active,
+        t.b2b_sale_status,
+        t.b2c_sale_status,
+        t.ctrip_sale_status,
+        t.meituan_sale_status,
+        t.feizhu_sale_status,
+        t.tcyl_sale_status,
+        t.qunar_sale_status
+      FROM t_pro_sale_status t
+    </select>
+</mapper>

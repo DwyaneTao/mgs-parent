@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.ebk.finance.mapper.EbkFinanceMapper">
+
+    <select id="queryEBKStatementList" parameterType="com.mgs.finance.remote.statement.request.QuerySupplierStatementListDTO"
+            resultType="com.mgs.finance.remote.statement.response.SupplierStatementListResponseDTO">
+        SELECT
+        s.id statementId,
+        s.statement_code statementCode,
+        s.supplier_name supplierName,
+        s.statement_name statementName,
+        s.statement_amt payableAmt,
+        s.paid_amt paidAmt,
+        s.unpaid_amt unpaidAmt,
+        s.currency currency,
+        s.statement_status statementStatus,
+        s.settlement_date settlementDate,
+        if(DATEDIFF(CURDATE(),s.settlement_date)>0,DATEDIFF(CURDATE(),s.settlement_date),0) overdueDays,
+        settlement_status settlementStatus
+        FROM f_supplier_statement s
+        WHERE s.supplier_code=#{supplierCode}
+        AND s.statement_status > 0
+        <if test="statementCode!=null and statementCode!=''">
+            AND s.statement_code LIKE "%"#{statementCode}"%"
+        </if>
+        <if test="statementStatus!=null and statementStatus!=''">
+            AND s.statement_status = #{statementStatus}
+        </if>
+        <if test="overdueStatus !=null and overdueStatus != ''">
+            <if test="overdueStatus ==0">
+                AND DATEDIFF(CURDATE(),s.settlement_date)&lt;=0
+            </if>
+            <if test="overdueStatus ==1">
+                AND DATEDIFF(CURDATE(),s.settlement_date)>0
+            </if>
+        </if>
+        AND (s.statement_amt != 0 OR s.paid_amt != 0)
+        ORDER BY s.id DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.finance.statement.mapper.SupplierStatementMapper">
+  <resultMap id="BaseResultMap" type="com.mgs.finance.statement.domain.SupplierStatementPO">
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" jdbcType="INTEGER" property="id" />
+    <result column="statement_code" jdbcType="VARCHAR" property="statementCode" />
+    <result column="statement_name" jdbcType="VARCHAR" property="statementName" />
+    <result column="statement_status" jdbcType="INTEGER" property="statementStatus" />
+    <result column="supplier_code" jdbcType="VARCHAR" property="supplierCode" />
+    <result column="supplier_name" jdbcType="VARCHAR" property="supplierName" />
+    <result column="start_date" jdbcType="DATE" property="startDate" />
+    <result column="end_date" jdbcType="DATE" property="endDate" />
+    <result column="currency" jdbcType="INTEGER" property="currency" />
+    <result column="statement_amt" jdbcType="DECIMAL" property="statementAmt" />
+    <result column="paid_amt" jdbcType="DECIMAL" property="paidAmt" />
+    <result column="unpaid_amt" jdbcType="DECIMAL" property="unpaidAmt" />
+    <result column="unconfirmed_received_amt" jdbcType="DECIMAL" property="unconfirmedReceivedAmt" />
+    <result column="unconfirmed_paid_amt" jdbcType="DECIMAL" property="unconfirmedPaidAmt" />
+    <result column="settlement_status" jdbcType="INTEGER" property="settlementStatus" />
+    <result column="settlement_date" jdbcType="DATE" property="settlementDate" />
+    <result column="company_code" jdbcType="VARCHAR" property="companyCode" />
+    <result column="created_by" jdbcType="VARCHAR" property="createdBy" />
+    <result column="created_dt" jdbcType="TIMESTAMP" property="createdDt" />
+    <result column="modified_by" jdbcType="VARCHAR" property="modifiedBy" />
+    <result column="modified_dt" jdbcType="TIMESTAMP" property="modifiedDt" />
+  </resultMap>
+
+  <select id="queryStatementList" parameterType="com.mgs.finance.remote.statement.request.QuerySupplierStatementListDTO"
+          resultType="com.mgs.finance.remote.statement.response.SupplierStatementListResponseDTO">
+    SELECT
+    s.id statementId,
+    s.statement_code statementCode,
+    s.supplier_name supplierName,
+    s.statement_name statementName,
+    s.statement_amt payableAmt,
+    s.paid_amt paidAmt,
+    s.unpaid_amt unpaidAmt,
+    s.currency currency,
+    s.statement_status statementStatus,
+    s.settlement_date settlementDate,
+    if(ISNULL(s.real_settlement_date), if(DATEDIFF(CURDATE(),s.settlement_date)>0,DATEDIFF(CURDATE(),s.settlement_date),0), if(DATEDIFF(s.real_settlement_date,s.settlement_date)>0,DATEDIFF(s.real_settlement_date,s.settlement_date),0))  overdueDays,
+    settlement_status settlementStatus
+    FROM f_supplier_statement s
+    WHERE s.company_code=#{companyCode}
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND s.supplier_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          and s.supplier_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    <if test="startDate!=null and startDate!=''">
+      AND s.settlement_date >= #{startDate}
+    </if>
+    <if test="endDate!=null and endDate!=''">
+      AND s.settlement_date &lt;= #{endDate}
+    </if>
+    <if test="statementCode!=null and statementCode!=''">
+      AND s.statement_code LIKE "%"#{statementCode}"%"
+    </if>
+    <if test="statementStatus!=null">
+      AND s.statement_status = #{statementStatus}
+    </if>
+    <if test="settlementStatus !=null and settlementStatus != ''">
+      AND s.settlement_status = #{settlementStatus}
+    </if>
+    <if test="overdueStatus !=null and overdueStatus != ''">
+      <if test="overdueStatus ==0">
+        AND DATEDIFF(CURDATE(),s.settlement_date)&lt;=0
+      </if>
+      <if test="overdueStatus ==1">
+        AND DATEDIFF(CURDATE(),s.settlement_date)>0
+      </if>
+    </if>
+    AND (s.statement_amt != 0 OR s.paid_amt != 0)
+    ORDER BY s.id DESC
+  </select>
+
+  <select id="queryUncheckOutSupplierList" parameterType="com.mgs.finance.remote.statement.request.QueryUncheckOutSupplierListDTO"
+          resultType="com.mgs.finance.remote.statement.response.UncheckOutSupplierDTO">
+    SELECT
+    so.supplier_code supplierCode,
+    oo.org_name supplierName,
+    so.base_currency currency,
+    sum(so.supply_order_amt - sf.paid_amt) payableAmt,
+    count(1) orderQty
+    FROM o_order o INNER JOIN o_supply_order so ON o.id=so.order_id
+      INNER JOIN o_supply_order_finance sf ON so.id = sf.supply_order_id INNER JOIN
+    t_org_organization oo on so.supplier_code=oo.org_code
+    WHERE o.company_code=#{companyCode}
+    AND so.settlement_type!=3
+    AND so.confirmation_status IN (1,2)
+    AND sf.check_status=1
+    AND so.supply_order_amt - sf.paid_amt!=0
+    <choose>
+      <when test="dateQueryType==0">
+        <if test="startDate!=null and startDate!=''">
+          AND o.created_dt >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND o.created_dt &lt; date_add(#{endDate},interval 1 day)
+        </if>
+      </when>
+      <when test="dateQueryType==1">
+        <if test="startDate!=null and startDate!=''">
+          AND so.start_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.start_date &lt;= #{endDate}
+        </if>
+      </when>
+      <when test="dateQueryType==2">
+        <if test="startDate!=null and startDate!=''">
+          AND so.end_date >= #{startDate}
+        </if>
+        <if test="endDate!=null and endDate!=''">
+          AND so.end_date &lt;= #{endDate}
+        </if>
+      </when>
+    </choose>
+    <choose>
+      <when test="supplierCode!=null and supplierCode!=''">
+        AND so.supplier_code=#{supplierCode}
+      </when>
+      <otherwise>
+        <if test="supplierName != null and supplierName != ''">
+          AND oo.org_name LIKE concat(concat('%',#{supplierName}),'%')
+        </if>
+      </otherwise>
+    </choose>
+    GROUP BY so.supplier_code,oo.org_name HAVING count(1)>0
+    ORDER BY payableAmt DESC
+  </select>
+</mapper>

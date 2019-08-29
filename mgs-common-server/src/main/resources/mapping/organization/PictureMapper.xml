@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.mgs.organization.mapper.PictureMapper">
+
+    <!--根据企业编码查询企业营业执照 -->
+    <select id="queryPictureLicense" resultMap="queryPictureLicense">
+     SELECT
+     picture_url,picture_id
+     from t_org_picture
+     WHERE t_org_picture.company_code = #{companyCode}
+     AND t_org_picture.picture_type = #{pictureType}
+    </select>
+    <resultMap id="queryPictureLicense" type="com.mgs.organization.remote.dto.PictureLicenseDTO">
+        <result column="picture_id" property="pictureId"/>
+        <result column="picture_url" property="pictureUrl"/>
+    </resultMap>
+
+    <select id="PictureLicense" resultMap="PictureLicense">
+     SELECT
+     picture_url
+     from t_org_picture
+     WHERE t_org_picture.company_code = #{companyCode}
+     AND t_org_picture.picture_type = #{pictureType}
+    </select>
+    <resultMap id="PictureLicense" type="com.mgs.organization.remote.dto.CompanyBusinessLicenseUrlDTO">
+    <result column="picture_url" property="CompanyBusinessLicenseUrl"/>
+    </resultMap>
+</mapper>
