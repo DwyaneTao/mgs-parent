@@ -39,7 +39,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
         <spring-cloud.version>Finchley.RC2</spring-cloud.version>
-        <fastjson.version>1.2.29</fastjson.version>
+        <fastjson.version>1.2.83</fastjson.version>
         <jjwt.version>0.7.0</jjwt.version>
         <shiro.version>1.2.4</shiro.version>
         <shiro-ehcache.version>1.2.4</shiro-ehcache.version>
